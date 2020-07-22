@@ -33,6 +33,9 @@ setup(
     entry_points={
         'xblock.v1': [
             'sence = sence:SenceXBlock',
+        ],
+        "lms.djangoapp": [
+            "sence = sence.apps:SenceConfig",
         ]
     },
     package_data=package_data("sence", ["static", "public"]),
