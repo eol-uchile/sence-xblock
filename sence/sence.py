@@ -1,70 +1,98 @@
-"""TO-DO: Write a description of what this XBlock is."""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- 
 
+import json
 import pkg_resources
+
+from django.template import Context, Template
+
 from xblock.core import XBlock
-from xblock.fields import Integer, Scope
+from xblock.fields import Integer, Scope, Boolean, String
 from xblock.fragment import Fragment
+from xblock.exceptions import JsonHandlerError
+from xblockutils.studio_editable import StudioEditableXBlockMixin
 
+# Make '_' a no-op so we can scrape strings
+_ = lambda text: text
 
-class SenceXBlock(XBlock):
-    """
-    TO-DO: document what your XBlock does.
-    """
+class SenceXBlock(StudioEditableXBlockMixin, XBlock):
 
-    # Fields are defined on the class.  You can access them in your code as
-    # self.<fieldname>.
-
-    # TO-DO: delete count, and define your own fields.
-    count = Integer(
-        default=0, scope=Scope.user_state,
-        help="A simple counter, to show something happening",
+    display_name = String(
+        display_name=_("Display Name"),
+        help=_("Display name for this module"),
+        default="Módulo Sence",
+        scope=Scope.settings,
     )
+
+    icon_class = String(
+        default="other",
+        scope=Scope.settings,
+    )
+
+    is_active = Boolean(
+        display_name = _("Activar Módulo"),
+        help = _("Indica si el módulo está activo o no"),
+        default = True,
+        scope = Scope.settings,
+    )
+
+    editable_fields = ('is_active',)
+    has_author_view = True
 
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
         data = pkg_resources.resource_string(__name__, path)
         return data.decode("utf8")
 
-    # TO-DO: change this view to display your data your own way.
+    def render_template(self, template_path, context):
+        template_str = self.resource_string(template_path)
+        template = Template(template_str)
+        return template.render(Context(context))
+
+    def author_view(self, context=None):
+        context_html = self.get_context()
+        template = self.render_template('static/html/author_view.html', context_html)
+        frag = Fragment(template)
+        frag.add_css(self.resource_string("static/css/sence.css"))
+        return frag
+
     def student_view(self, context=None):
         """
         The primary view of the SenceXBlock, shown to students
         when viewing courses.
         """
-        html = self.resource_string("static/html/sence.html")
-        frag = Fragment(html.format(self=self))
+        html_context = self.get_context()
+        template = self.render_template('static/html/sence.html', html_context)
+        frag = Fragment(template)
         frag.add_css(self.resource_string("static/css/sence.css"))
         frag.add_javascript(self.resource_string("static/js/src/sence.js"))
-        frag.initialize_js('SenceXBlock')
+        settings = {
+            'is_active': self.is_active,
+            'location': str(self.location).split('@')[-1],
+            'is_course_staff': getattr(
+                self.xmodule_runtime,
+                'user_is_staff',
+                False),
+        }
+        frag.initialize_js('SenceXBlock', json_args=settings)
         return frag
 
-    # TO-DO: change this handler to perform your own actions.  You may need more
-    # than one handler, or you may not need any handlers at all.
-    @XBlock.json_handler
-    def increment_count(self, data, suffix=''):
-        """
-        An example handler, which increments the data.
-        """
-        # Just to show data coming in...
-        assert data['hello'] == 'world'
+    def get_context(self):
+        return {
+            'xblock': self,
+            'location': str(self.location).split('@')[-1],
+            'is_course_staff': getattr(
+                self.xmodule_runtime,
+                'user_is_staff',
+                False),
+        }
 
-        self.count += 1
-        return {"count": self.count}
 
-    # TO-DO: change this to create the scenarios you'd like to see in the
-    # workbench while developing your XBlock.
     @staticmethod
     def workbench_scenarios():
         """A canned scenario for display in the workbench."""
         return [
             ("SenceXBlock",
              """<sence/>
-             """),
-            ("Multiple SenceXBlock",
-             """<vertical_demo>
-                <sence/>
-                <sence/>
-                <sence/>
-                </vertical_demo>
              """),
         ]

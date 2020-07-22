@@ -1,22 +1,12 @@
-/* Javascript for SenceXBlock. */
-function SenceXBlock(runtime, element) {
+function SenceXBlock(runtime, element, settings) {
 
-    function updateCount(result) {
-        $('.count', element).text(result.count);
-    }
+    $(function($) {
+        const show = ( {is_active, is_course_staff} ) => is_active || is_course_staff;
+        console.log(show(settings));
+        if(!show(settings)) {
+            // hide all components except this xblock (sence message)
+            $('.vert').not(`[data-id*="${settings.location}"]`).hide();
+        }
 
-    var handlerUrl = runtime.handlerUrl(element, 'increment_count');
-
-    $('p', element).click(function(eventObject) {
-        $.ajax({
-            type: "POST",
-            url: handlerUrl,
-            data: JSON.stringify({"hello": "world"}),
-            success: updateCount
-        });
-    });
-
-    $(function ($) {
-        /* Here's where you'd do things on page load. */
     });
 }
