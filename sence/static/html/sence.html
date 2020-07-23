@@ -1,5 +1,17 @@
 <div class="sence_block">
-<h2>Student view</h2>
-<p>is_active {{ xblock.is_active }} </p>
-<p>is_course_staff {{ is_course_staff }}</p>
+    <h2>Student view</h2>
+    <p>is_active {{ xblock.is_active }} </p>
+    <p>is_course_staff {{ is_course_staff }}</p>
+    <form id="login_sence" action="" method="POST">
+        <input type="hidden" name="RutOtec" id="RutOtec">
+        <input type="hidden" name="Token" id="Token">
+        <input type="hidden" name="CodSence" id="CodSence">
+        <input type="hidden" name="CodigoCurso" id="CodigoCurso">
+        <input type="hidden" name="LineaCapacitacion" id="LineaCapacitacion">
+        <input type="hidden" name="RunAlumno" id="RunAlumno">
+        <input type="hidden" name="IdSesionAlumno" id="IdSesionAlumno">
+        <input type="hidden" name="UrlRetoma" id="UrlRetoma">
+        <input type="hidden" name="UrlError" id="UrlError">
+        <input type="submit" disabled='disabled' id="submit_login_sence">
+    </form>
 </div>

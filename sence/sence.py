@@ -12,6 +12,8 @@ from xblock.fragment import Fragment
 from xblock.exceptions import JsonHandlerError
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 
+from django.urls import reverse
+
 # Make '_' a no-op so we can scrape strings
 _ = lambda text: text
 
@@ -66,13 +68,15 @@ class SenceXBlock(StudioEditableXBlockMixin, XBlock):
         frag = Fragment(template)
         frag.add_css(self.resource_string("static/css/sence.css"))
         frag.add_javascript(self.resource_string("static/js/src/sence.js"))
+        location = str(self.location).split('@')[-1]
         settings = {
             'is_active': self.is_active,
-            'location': str(self.location).split('@')[-1],
+            'location': location,
             'is_course_staff': getattr(
                 self.xmodule_runtime,
                 'user_is_staff',
                 False),
+            'sence_login': reverse('login_sence', kwargs={'block_id':self.location})
         }
         frag.initialize_js('SenceXBlock', json_args=settings)
         return frag

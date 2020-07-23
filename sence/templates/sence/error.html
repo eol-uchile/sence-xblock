@@ -1,0 +1,26 @@
+## mako
+<%! from django.utils.translation import ugettext as _ %>
+<%namespace name='static' file='/static_content.html'/>
+<%block name="pagetitle">${_("Error Sence")}</%block>
+<%inherit file="/main.html" />
+<%block name="headextra">
+<%static:css group='style-course'/>
+</%block>
+
+<style>
+    .error_sence p {
+        text-align: center;
+    }
+</style>
+
+<main class="error_sence" aria-label="Content" tabindex="-1" class="static_pages">
+        <p>${ message }</p>
+        <p>Si el problema persiste, contáctese con la mesa de ayuda.</p>
+        <p>Espere un momento mientras se redirecciona nuevamente al curso.</p>
+        <p><a href="${ url }">Click aquí si no desea esperar</a></p>
+    <script>
+        setTimeout(() => {
+            window.location.replace("${ url }");
+        }, 5000);
+    </script>
+</main>
