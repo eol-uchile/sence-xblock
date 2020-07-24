@@ -35,7 +35,7 @@ def login_sence(request, block_id):
     platform_configuration = get_platform_configurations()
     if 'error' in platform_configuration:
         return JsonResponse(status=400, data=platform_configuration)
-    rut_otec, sense_token, sense_api_url = platform_configuration
+    rut_otec, sence_token, sence_api_url = platform_configuration
 
     # Get Course Setup
     usage_key = UsageKey.from_string(block_id)
@@ -43,14 +43,14 @@ def login_sence(request, block_id):
     course_setup = get_course_setup(course_id)
     if 'error' in course_setup:
         return JsonResponse(status=400, data=course_setup)
-    sense_code, sense_line = course_setup
+    sence_code, sence_line = course_setup
 
     # Get User Data
     user = request.user
     user_run = get_user_run(user)
 
     # Generate URL's
-    login_url = "{}Registro/IniciarSesion".format(sense_api_url)
+    login_url = "{}Registro/IniciarSesion".format(sence_api_url)
     url_success = request.build_absolute_uri(reverse('login_sence_success'))
     url_fail = request.build_absolute_uri(reverse('login_sence_fail'))
 
@@ -61,10 +61,10 @@ def login_sence(request, block_id):
     data = {
         'login_url'         : login_url,
         'RutOtec'           : rut_otec,
-        'Token'             : sense_token,
+        'Token'             : sence_token,
         'CodSence'          : "-1", # Testing purpose. TODO: EDIT IN PRODUCTION
         'CodigoCurso'       : "-1", # Testing purpose. TODO: EDIT IN PRODUCTION
-        'LineaCapacitacion' : sense_line,
+        'LineaCapacitacion' : sence_line,
         'RunAlumno'         : user_run,
         'IdSesionAlumno'    : block_id,
         'UrlRetoma'         : url_success,
@@ -103,7 +103,7 @@ def login_sence_fail(request):
 
 def set_student_status(user, course_id, id_session):
     """
-        Associate Sense session_id with the user
+        Associate sence session_id with the user
     """
     student_status = EolSenceStudentStatus.objects.create(
         user = user,
@@ -116,17 +116,17 @@ def get_platform_configurations():
         Get platform configuration or global configuration
     """
     rut_otec = configuration_helpers.get_value('SENCE_RUT_OTEC', settings.SENCE_RUT_OTEC)
-    sense_token = configuration_helpers.get_value('SENCE_TOKEN', settings.SENCE_TOKEN).upper()
-    sense_api_url = configuration_helpers.get_value('SENCE_API_URL', settings.SENCE_API_URL)
-    if rut_otec == '' or sense_token == '' or sense_api_url == '' or rut_otec == {} or sense_token == {} or sense_api_url == {}:
+    sence_token = configuration_helpers.get_value('SENCE_TOKEN', settings.SENCE_TOKEN).upper()
+    sence_api_url = configuration_helpers.get_value('SENCE_API_URL', settings.SENCE_API_URL)
+    if rut_otec == '' or sence_token == '' or sence_api_url == '' or rut_otec == {} or sence_token == {} or sence_api_url == {}:
         logger.error('Platform not configurated correctly')
         return {
             'error': 'Platform not configurated correctly'
         }
     return (
         rut_otec,
-        sense_token,
-        sense_api_url
+        sence_token,
+        sence_api_url
     )
 
 def get_course_setup(course_id):
@@ -138,8 +138,8 @@ def get_course_setup(course_id):
             course=course_id
         )
         return (
-            setup.sense_code,
-            setup.sense_line
+            setup.sence_code,
+            setup.sence_line
         )
     except EolSenceCourseSetup.DoesNotExist:
         logger.error('Course without setup')

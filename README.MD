@@ -18,5 +18,5 @@ The default session expire time is 6 (hours). It can be modified by setting *SEN
 
 ## **Course** Configuration
 
-To enable this app have to setup the course at */admin/sence/eolsencecoursesetup/*. **Course id**, **Sence Code**, **Sense Line** are Required.
+To enable this app have to setup the course at */admin/sence/eolsencecoursesetup/*. **Course id**, **Sence Code**, **Sence Line** are Required.
 

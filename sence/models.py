@@ -26,8 +26,8 @@ class EolSenceCourseSetup(models.Model):
         Model with Sence Course Setup
     """
     course = CourseKeyField(max_length=50, unique=True, blank=False, null=False)
-    sense_code = models.CharField(max_length=10, blank=False, null=False)
-    sense_line = models.IntegerField(choices=LINE_CHOICES, blank=False, null=False)
+    sence_code = models.CharField(max_length=10, blank=False, null=False)
+    sence_line = models.IntegerField(choices=LINE_CHOICES, blank=False, null=False)
 
 class EolSenceStudentStatus(models.Model):
     """
