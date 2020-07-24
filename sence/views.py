@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from uchileedxlogin.models import EdxLoginUser
 from opaque_keys.edx.keys import UsageKey
 
-from .models import EolSenceCourseSetup
+from .models import EolSenceCourseSetup, EolSenceStudentStatus
 
 import logging
 logger = logging.getLogger(__name__)
@@ -36,7 +36,8 @@ def login_sence(request, block_id):
     rut_otec, sense_token, sense_api_url = platform_configuration
 
     # Get Course Setup
-    course_id = 'course-v1:eol+eol101+2020_1'
+    usage_key = UsageKey.from_string(block_id)
+    course_id = usage_key.course_key
     course_setup = get_course_setup(course_id)
     if 'error' in course_setup:
         return JsonResponse(status=400, data=course_setup)
@@ -75,6 +76,7 @@ def login_sence_success(request):
         return HttpResponse(status=400)
     location = request.POST['IdSesionAlumno']
     usage_key = UsageKey.from_string(location)
+    set_student_status(request.user, usage_key.course_key, request.POST['IdSesionSence'])
     return HttpResponseRedirect(reverse('jump_to', kwargs={'course_id':usage_key.course_key, 'location':location}))
 
 @csrf_exempt
@@ -93,12 +95,19 @@ def login_sence_fail(request):
     }
     return render(request, 'sence/error.html', context)
 
+def set_student_status(user, course_id, id_session):
+    student_status = EolSenceStudentStatus.objects.create(
+        user = user,
+        course = course_id,
+        id_session = id_session
+    )
+
 def get_platform_configurations():
     """
         Get platform configuration or global configuration
     """
     rut_otec = configuration_helpers.get_value('SENCE_RUT_OTEC', settings.SENCE_RUT_OTEC)
-    sense_token = configuration_helpers.get_value('SENCE_TOKEN', settings.SENCE_TOKEN)
+    sense_token = configuration_helpers.get_value('SENCE_TOKEN', settings.SENCE_TOKEN).upper()
     sense_api_url = configuration_helpers.get_value('SENCE_API_URL', settings.SENCE_API_URL)
     if rut_otec == '' or sense_token == '' or sense_api_url == '' or rut_otec == {} or sense_token == {} or sense_api_url == {}:
         logger.error('Platform not configurated correctly')

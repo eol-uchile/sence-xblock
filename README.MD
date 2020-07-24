@@ -12,6 +12,10 @@ To enable API have to setup your own variables.
 
 The app will get this variables from *site configurations* (priority) or from *production.py* in the *lms settings*.
 
+## Session Expire Time
+
+The default session expire time is 6 (hours). It can be modified by setting *SENCE_EXPIRE_TIME* at *production.py* in the *lms settings*. This value has to be a number of hours (integer).
+
 ## **Course** Configuration
 
 To enable this app have to setup the course at */admin/sence/eolsencecoursesetup/*. **Course id**, **Sence Code**, **Sense Line** are Required.
