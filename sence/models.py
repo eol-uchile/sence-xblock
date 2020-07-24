@@ -37,7 +37,7 @@ class EolSenceStudentStatus(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="sence_user")
-    course = CourseKeyField(max_length=50, unique=True, blank=False, null=False)
+    course = CourseKeyField(max_length=50, blank=False, null=False)
     id_session = models.CharField(max_length=149, blank=False, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(default=expire_datetime)

@@ -15,6 +15,8 @@ from opaque_keys.edx.keys import UsageKey
 
 from .models import EolSenceCourseSetup, EolSenceStudentStatus
 
+from datetime import datetime
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,9 @@ def login_sence(request, block_id):
     url_success = request.build_absolute_uri(reverse('login_sence_success'))
     url_fail = request.build_absolute_uri(reverse('login_sence_fail'))
 
+    # Get user session status
+    session_status = get_session_status(user, course_id)
+
     # Return Data
     data = {
         'login_url'         : login_url,
@@ -63,14 +68,15 @@ def login_sence(request, block_id):
         'RunAlumno'         : user_run,
         'IdSesionAlumno'    : block_id,
         'UrlRetoma'         : url_success,
-        'UrlError'          : url_fail
+        'UrlError'          : url_fail,
+        'session_status'    : session_status,
     }
     return JsonResponse(data)
 
 @csrf_exempt
 def login_sence_success(request):
     """
-        Success Login
+        Success Login Request. Save the Sence Session ID and Redirect student to the course
     """
     if request.method != "POST" or 'IdSesionAlumno' not in request.POST or 'IdSesionSence' not in request.POST:
         return HttpResponse(status=400)
@@ -82,7 +88,7 @@ def login_sence_success(request):
 @csrf_exempt
 def login_sence_fail(request):
     """
-        Fail Login. Render a page with a redirect timeout
+        Fail Login Request. Render a page with a redirect timeout
     """
     if request.method != "POST" or 'GlosaError' not in request.POST or 'IdSesionAlumno' not in request.POST:
         return HttpResponse(status=400)
@@ -96,6 +102,9 @@ def login_sence_fail(request):
     return render(request, 'sence/error.html', context)
 
 def set_student_status(user, course_id, id_session):
+    """
+        Associate Sense session_id with the user
+    """
     student_status = EolSenceStudentStatus.objects.create(
         user = user,
         course = course_id,
@@ -136,6 +145,26 @@ def get_course_setup(course_id):
         logger.error('Course without setup')
         return {
             'error': 'Course without setup'
+        }
+    
+
+def get_session_status(user, course_id):
+    """
+        Get User Status (from django admin)
+        Return is_active boolean. This will be False if the session is expired or does not exists
+    """ 
+    try:
+        status = EolSenceStudentStatus.objects.filter(
+            user=user,
+            course=course_id
+        ).latest('created_at')
+        return {
+            'is_active'     : datetime.now(status.expires_at.tzinfo) < status.expires_at, # now() parameter because can't compare offset-naive and offset-aware datetimes
+            'created_at'    : status.created_at
+        }
+    except EolSenceStudentStatus.DoesNotExist:
+        return {
+            'is_active': False
         }
 
 def get_user_run(user):
