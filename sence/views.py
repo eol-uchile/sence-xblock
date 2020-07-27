@@ -43,7 +43,7 @@ def login_sence(request, block_id):
     course_setup = get_course_setup(course_id)
     if 'error' in course_setup:
         return JsonResponse(status=400, data=course_setup)
-    sence_code, sence_line = course_setup
+    sence_code, sence_course_code, sence_line = course_setup
 
     # Get User Data
     user = request.user
@@ -62,8 +62,8 @@ def login_sence(request, block_id):
         'login_url'         : login_url,
         'RutOtec'           : rut_otec,
         'Token'             : sence_token,
-        'CodSence'          : "-1", # Testing purpose. TODO: EDIT IN PRODUCTION
-        'CodigoCurso'       : "-1", # Testing purpose. TODO: EDIT IN PRODUCTION
+        'CodSence'          : sence_code,
+        'CodigoCurso'       : sence_course_code,
         'LineaCapacitacion' : sence_line,
         'RunAlumno'         : user_run,
         'IdSesionAlumno'    : block_id,
@@ -139,6 +139,7 @@ def get_course_setup(course_id):
         )
         return (
             setup.sence_code,
+            setup.sence_course_code,
             setup.sence_line
         )
     except EolSenceCourseSetup.DoesNotExist:

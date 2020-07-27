@@ -17,6 +17,9 @@ from django.urls import reverse
 # Make '_' a no-op so we can scrape strings
 _ = lambda text: text
 
+import logging
+logger = logging.getLogger(__name__)
+
 class SenceXBlock(StudioEditableXBlockMixin, XBlock):
 
     display_name = String(
@@ -31,14 +34,6 @@ class SenceXBlock(StudioEditableXBlockMixin, XBlock):
         scope=Scope.settings,
     )
 
-    is_active = Boolean(
-        display_name = _("Activar Módulo"),
-        help = _("Indica si el módulo está activo o no"),
-        default = True,
-        scope = Scope.settings,
-    )
-
-    editable_fields = ('is_active',)
     has_author_view = True
 
     def resource_string(self, path):
@@ -53,6 +48,7 @@ class SenceXBlock(StudioEditableXBlockMixin, XBlock):
 
     def author_view(self, context=None):
         context_html = self.get_context()
+        context_html['config'] = get_configurations(self.xmodule_runtime.course_id)
         template = self.render_template('static/html/author_view.html', context_html)
         frag = Fragment(template)
         frag.add_css(self.resource_string("static/css/sence.css"))
@@ -70,7 +66,6 @@ class SenceXBlock(StudioEditableXBlockMixin, XBlock):
         frag.add_javascript(self.resource_string("static/js/src/sence.js"))
         location = str(self.location).split('@')[-1]
         settings = {
-            'is_active': self.is_active,
             'location': location,
             'is_course_staff': getattr(
                 self.xmodule_runtime,
@@ -100,3 +95,22 @@ class SenceXBlock(StudioEditableXBlockMixin, XBlock):
              """<sence/>
              """),
         ]
+
+def get_configurations(course_id):
+    """
+    Get platform and course configurations
+    """
+    from .views import get_course_setup, get_platform_configurations
+    platform_configurations = get_platform_configurations()
+    course_setup = get_course_setup(course_id)
+    if 'error' in course_setup:
+        sence_code = 'undefined'
+        sence_course_code = 'undefined'
+        sence_line = 'undefined'
+    else:
+        sence_code, sence_course_code, sence_line = course_setup
+    return {
+        'sence_code' : sence_code,
+        'sence_course_code' : sence_course_code,
+        'sence_line' : sence_line
+    }

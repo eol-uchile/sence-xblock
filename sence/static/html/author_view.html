@@ -1,5 +1,14 @@
-<div class="sence_block">
-<h2>Author View</h2>
-<p>{{ xblock.is_active }}</p>
+<div class="sence_author_block">
+    <div class="alert alert-info">
+        <p>Este componente se visualiza únicamente en el LMS.</p>
+    </div>
+    <p><strong>Las configuraciones Sence para este curso son:</strong></p>
+    <ul>
+        <li><strong>- Código Sence del curso:</strong> {{ config.sence_code }}</li>
+        <li><strong>- Identificador Sence del curso:</strong> {{ config.sence_course_code }}</li>
+        <li><strong>- Linea de Capacitación Sence del Curso:</strong> 
+            {% if config.sence_line == 1 %} Sistema Integrado de Capacitación {% endif %}
+            {% if config.sence_line == 3 %} Impulsa Personas {% endif %}
+        </li>
+    </ul> 
 </div>
-    

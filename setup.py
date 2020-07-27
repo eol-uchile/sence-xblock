@@ -36,6 +36,9 @@ setup(
         ],
         "lms.djangoapp": [
             "sence = sence.apps:SenceConfig",
+        ],
+        "cms.djangoapp": [
+            "sence = sence.apps:SenceConfig",
         ]
     },
     package_data=package_data("sence", ["static", "public"]),

@@ -10,7 +10,7 @@ To enable API have to setup your own variables.
     SENCE_TOKEN = 'your_sence_token'
     SENCE_API_URL = 'your_sence_api_url'
 
-The app will get this variables from *site configurations* (priority) or from *production.py* in the *lms settings*.
+The app will get this variables from *site configurations* (priority) or from *production.py* in the *lms and cms settings*.
 
 ## Session Expire Time
 
