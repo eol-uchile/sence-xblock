@@ -1,0 +1,53 @@
+.sence_block {
+    padding: 20px;
+    border-style: solid;
+    border-color: #009cdd;
+    border-width: 2px;
+    box-shadow: -3px 6px #009cdd;
+}
+
+.sence_block h2{
+    color: #009cdd;
+    text-align: center;
+}
+
+.sence_block p{
+    text-align: center;
+}
+
+.sence_block .button {
+    text-transform: uppercase;
+    text-shadow: none;
+    outline: 0;
+    display:block;
+    border: 0;
+    padding: 10px 40px;
+    font-size: 14px;
+    -webkit-transition: all 0.3 ease;
+    transition: all 0.3 ease;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.sence_block .button.button-blue {
+    background: #009cdd;
+    color: #FFFFFF;
+    margin: auto;
+}
+
+.sence_block .button.button-blue:hover,
+.sence_block .button.button-blue:active,
+.sence_block .button.button-blue:focus, 
+.sence_block .button.button-blue:active {
+    background: #047aab;
+    color: #FFFFFF;
+    box-shadow: none;
+}
+
+.sence_block .help {
+    margin-top: 25px;
+}
+
+.sence_block .help p {
+    margin: 0px;
+}

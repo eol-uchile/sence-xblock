@@ -19,30 +19,37 @@ function SenceXBlock(runtime, element, settings) {
         /* Show student status (check if user has an active Sence session) */
         const show_student_status = (status) => {
             if( status.is_active ){
-                $(element).find('.status').html('<p>Sesión Activa</p>');
+                $(element).find('.detail').html('<strong>Cuentas con una sesión activa en Sence.</strong>');
                 $(element).find('#login_sence #submit_login_sence').hide();
+                $(element).find('.help').hide();
                 $('.vert').not(`[data-id*="${settings.location}"]`).show();
             } else {
-                $(element).find('.status').html('<p>Sesión Aún no iniciada</p>');
                 /* If user is staff, show all components inside the unit */
                 if(settings.is_course_staff) {
                     $('.vert').not(`[data-id*="${settings.location}"]`).show();
+                    $(element).find('.detail').append('</br><strong style="color: red;">Los componentes son visibles porque estas viendo esta unidad como Equipo</strong>');
                 }
             }
         }
 
         /* Load login data required from sence */
         const load_login_data = (url) => {
-
-            // by default hide all components except this xblock (sence message)
+            $(element).find('.sence-content').hide();
+            $(element).find('.loading').show();
+            // by default hide all components except this xblock
             $('.vert').not(`[data-id*="${settings.location}"]`).hide();
             fetch(url)
                 .then((response) => response.json())
                 .then((response) => {
+                    $(element).find('.sence-content').show();
+                    $(element).find('.loading').hide();
                     fill_hidden_form(response);
                     show_student_status(response['session_status']);
                 })
-                .catch((e) => console.log(e) );
+                .catch((e) => {
+                    console.log(e);
+                    $(element).find('.loading').html('Hubo un problema al obtener los datos Sence. Recarge la página para intentar nuevamente.');
+                } );
         }
 
         load_login_data(settings.sence_login);
