@@ -14,6 +14,7 @@ LINE_CHOICES = (
     (3, "Impulsa Personas")
 )
 
+
 def expire_datetime():
     """
         Return a expire time of 6 hours by default
@@ -21,14 +22,22 @@ def expire_datetime():
     EXPIRE_TIME = getattr(settings, 'SENCE_EXPIRE_TIME', 6)
     return datetime.now() + timedelta(hours=EXPIRE_TIME)
 
+
 class EolSenceCourseSetup(models.Model):
     """
         Model with Sence Course Setup
     """
-    course = CourseKeyField(max_length=50, unique=True, blank=False, null=False)
+    course = CourseKeyField(
+        max_length=50,
+        unique=True,
+        blank=False,
+        null=False)
     sence_code = models.CharField(max_length=10, blank=False, null=False)
-    sence_course_code = models.CharField(max_length=50, blank=False, null=False)
-    sence_line = models.IntegerField(choices=LINE_CHOICES, blank=False, null=False)
+    sence_course_code = models.CharField(
+        max_length=50, blank=False, null=False)
+    sence_line = models.IntegerField(
+        choices=LINE_CHOICES, blank=False, null=False)
+
 
 class EolSenceStudentStatus(models.Model):
     """

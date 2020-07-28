@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import json
 import pkg_resources
@@ -14,10 +14,14 @@ from xblock.exceptions import JsonHandlerError
 from django.urls import reverse
 
 # Make '_' a no-op so we can scrape strings
-_ = lambda text: text
+
+
+def _(text): return text
+
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 class SenceXBlock(XBlock):
 
@@ -47,8 +51,10 @@ class SenceXBlock(XBlock):
 
     def author_view(self, context=None):
         context_html = self.get_context()
-        context_html['config'] = get_configurations(self.xmodule_runtime.course_id)
-        template = self.render_template('static/html/author_view.html', context_html)
+        context_html['config'] = get_configurations(
+            self.xmodule_runtime.course_id)
+        template = self.render_template(
+            'static/html/author_view.html', context_html)
         frag = Fragment(template)
         frag.add_css(self.resource_string("static/css/sence.css"))
         return frag
@@ -65,24 +71,22 @@ class SenceXBlock(XBlock):
         frag.add_javascript(self.resource_string("static/js/src/sence.js"))
         location = str(self.location).split('@')[-1]
         settings = {
-            'location': location,
-            'is_course_staff': getattr(
-                self.xmodule_runtime,
-                'user_is_staff',
-                False),
-            'sence_login': reverse('login_sence', kwargs={'block_id':self.location})
-        }
+            'location': location, 'is_course_staff': getattr(
+                self.xmodule_runtime, 'user_is_staff', False), 'sence_login': reverse(
+                'login_sence', kwargs={
+                    'block_id': self.location})}
         frag.initialize_js('SenceXBlock', json_args=settings)
         return frag
 
     def studio_view(self, context=None):
         context_html = self.get_context()
-        template = self.render_template('static/html/studio.html', context_html)
+        template = self.render_template(
+            'static/html/studio.html', context_html)
         frag = Fragment(template)
         frag.add_javascript(self.resource_string("static/js/src/studio.js"))
         frag.initialize_js('SenceStudioXBlock')
         return frag
-    
+
     def get_context(self):
         return {
             'xblock': self,
@@ -93,7 +97,6 @@ class SenceXBlock(XBlock):
                 False),
         }
 
-
     @staticmethod
     def workbench_scenarios():
         """A canned scenario for display in the workbench."""
@@ -102,6 +105,7 @@ class SenceXBlock(XBlock):
              """<sence/>
              """),
         ]
+
 
 def get_configurations(course_id):
     """
@@ -117,7 +121,7 @@ def get_configurations(course_id):
     else:
         sence_code, sence_course_code, sence_line = course_setup
     return {
-        'sence_code' : sence_code,
-        'sence_course_code' : sence_course_code,
-        'sence_line' : sence_line
+        'sence_code': sence_code,
+        'sence_course_code': sence_course_code,
+        'sence_line': sence_line
     }

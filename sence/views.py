@@ -21,7 +21,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
 def login_sence(request, block_id):
     """
         GET REQUEST
@@ -59,19 +58,20 @@ def login_sence(request, block_id):
 
     # Return Data
     data = {
-        'login_url'         : login_url,
-        'RutOtec'           : rut_otec,
-        'Token'             : sence_token,
-        'CodSence'          : sence_code,
-        'CodigoCurso'       : sence_course_code,
-        'LineaCapacitacion' : sence_line,
-        'RunAlumno'         : user_run,
-        'IdSesionAlumno'    : block_id,
-        'UrlRetoma'         : url_success,
-        'UrlError'          : url_fail,
-        'session_status'    : session_status,
+        'login_url': login_url,
+        'RutOtec': rut_otec,
+        'Token': sence_token,
+        'CodSence': sence_code,
+        'CodigoCurso': sence_course_code,
+        'LineaCapacitacion': sence_line,
+        'RunAlumno': user_run,
+        'IdSesionAlumno': block_id,
+        'UrlRetoma': url_success,
+        'UrlError': url_fail,
+        'session_status': session_status,
     }
     return JsonResponse(data)
+
 
 @csrf_exempt
 def login_sence_success(request):
@@ -82,8 +82,17 @@ def login_sence_success(request):
         return HttpResponse(status=400)
     location = request.POST['IdSesionAlumno']
     usage_key = UsageKey.from_string(location)
-    set_student_status(request.user, usage_key.course_key, request.POST['IdSesionSence'])
-    return HttpResponseRedirect(reverse('jump_to', kwargs={'course_id':usage_key.course_key, 'location':location}))
+    set_student_status(
+        request.user,
+        usage_key.course_key,
+        request.POST['IdSesionSence'])
+    return HttpResponseRedirect(
+        reverse(
+            'jump_to',
+            kwargs={
+                'course_id': usage_key.course_key,
+                'location': location}))
+
 
 @csrf_exempt
 def login_sence_fail(request):
@@ -96,29 +105,36 @@ def login_sence_fail(request):
     location = request.POST['IdSesionAlumno']
     usage_key = UsageKey.from_string(location)
     context = {
-        'message'   : '[ERROR] Inicio de sesión fallido. Código de error: {}'.format(request.POST['GlosaError']),
-        'url'       : reverse('jump_to', kwargs={'course_id':usage_key.course_key, 'location':location})
-    }
+        'message': '[ERROR] Inicio de sesión fallido. Código de error: {}'.format(
+            request.POST['GlosaError']), 'url': reverse(
+            'jump_to', kwargs={
+                'course_id': usage_key.course_key, 'location': location})}
     return render(request, 'sence/error.html', context)
+
 
 def set_student_status(user, course_id, id_session):
     """
         Associate sence session_id with the user
     """
     student_status = EolSenceStudentStatus.objects.create(
-        user = user,
-        course = course_id,
-        id_session = id_session
+        user=user,
+        course=course_id,
+        id_session=id_session
     )
+
 
 def get_platform_configurations():
     """
         Get platform configuration or global configuration
     """
-    rut_otec = configuration_helpers.get_value('SENCE_RUT_OTEC', settings.SENCE_RUT_OTEC)
-    sence_token = configuration_helpers.get_value('SENCE_TOKEN', settings.SENCE_TOKEN).upper()
-    sence_api_url = configuration_helpers.get_value('SENCE_API_URL', settings.SENCE_API_URL)
-    if rut_otec == '' or sence_token == '' or sence_api_url == '' or rut_otec == {} or sence_token == {} or sence_api_url == {}:
+    rut_otec = configuration_helpers.get_value(
+        'SENCE_RUT_OTEC', settings.SENCE_RUT_OTEC)
+    sence_token = configuration_helpers.get_value(
+        'SENCE_TOKEN', settings.SENCE_TOKEN).upper()
+    sence_api_url = configuration_helpers.get_value(
+        'SENCE_API_URL', settings.SENCE_API_URL)
+    if rut_otec == '' or sence_token == '' or sence_api_url == '' or rut_otec == {
+    } or sence_token == {} or sence_api_url == {}:
         logger.error('Platform not configurated correctly')
         return {
             'error': 'Platform not configurated correctly'
@@ -128,6 +144,7 @@ def get_platform_configurations():
         sence_token,
         sence_api_url
     )
+
 
 def get_course_setup(course_id):
     """
@@ -147,25 +164,29 @@ def get_course_setup(course_id):
         return {
             'error': 'Course without setup'
         }
-    
+
+
 def get_session_status(user, course_id):
     """
         Get User Status (from django admin)
         Return is_active boolean. This will be False if the session is expired or does not exists
-    """ 
+    """
     try:
         status = EolSenceStudentStatus.objects.filter(
             user=user,
             course=course_id
         ).latest('created_at')
         return {
-            'is_active'     : datetime.now(status.expires_at.tzinfo) < status.expires_at, # now() parameter because can't compare offset-naive and offset-aware datetimes
-            'created_at'    : status.created_at
+            # now() parameter because can't compare offset-naive and
+            # offset-aware datetimes
+            'is_active': datetime.now(status.expires_at.tzinfo) < status.expires_at,
+            'created_at': status.created_at
         }
     except EolSenceStudentStatus.DoesNotExist:
         return {
             'is_active': False
         }
+
 
 def get_user_run(user):
     """
@@ -178,9 +199,10 @@ def get_user_run(user):
         logger.warning("{} doesn't have RUN".format(user.username))
         return ''
 
+
 def format_run(run):
     """
         Format RUN to Sence requeriments (example: 12345689-0)
     """
-    aux = run.lstrip('0') # remove '0' from the left
-    return "{}-{}".format(aux[:-1], aux[-1:]) # add '-' before last digit
+    aux = run.lstrip('0')  # remove '0' from the left
+    return "{}-{}".format(aux[:-1], aux[-1:])  # add '-' before last digit

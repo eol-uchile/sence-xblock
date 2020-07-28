@@ -5,11 +5,14 @@ from django.contrib import admin
 
 from .models import EolSenceCourseSetup, EolSenceStudentStatus
 
+
 class EolSenceCourseSetupAdmin(admin.ModelAdmin):
     list_display = ('course', 'sence_code', 'sence_course_code', 'sence_line')
 
+
 class EolSenceStudentStatusAdmin(admin.ModelAdmin):
     list_display = ('user', 'course', 'created_at', 'expires_at')
+
 
 admin.site.register(EolSenceCourseSetup, EolSenceCourseSetupAdmin)
 admin.site.register(EolSenceStudentStatus, EolSenceStudentStatusAdmin)
