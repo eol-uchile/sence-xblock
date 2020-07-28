@@ -14,6 +14,8 @@ from student.tests.factories import UserFactory, CourseEnrollmentFactory
 from xblock.field_data import DictFieldData
 from student.roles import CourseStaffRole
 
+from uchileedxlogin.models import EdxLoginUser
+
 from .sence import SenceXBlock
 
 from . import views
@@ -62,6 +64,38 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             self.client = Client()
             self.assertTrue(self.client.login(username=uname, password=password))
 
+    def test_format_run(self):
+        """
+            Test format run to sence requirements (123456-7)
+            Run from uchileedxlogin are in the format: 00123456789
+        """
+        run = '01234567'
+        new_run = views.format_run(run)
+        self.assertEqual(new_run, '123456-7')
+
+        run_2 = '00001234567'
+        new_run_2 = views.format_run(run_2)
+        self.assertEqual(new_run_2, '123456-7')
+
+        run_3 = '1234567'
+        new_run_3= views.format_run(run_3)
+        self.assertEqual(new_run_3, '123456-7')
+
+        run_4 = '1234567K'
+        new_run_4= views.format_run(run_4)
+        self.assertEqual(new_run_4, '1234567-K')
+
+    def test_get_user_run(self):
+        """
+            Test get user run from uchileedxlogin.
+            get_user_run return a sence-formatted run 
+        """
+        user_run = views.get_user_run(self.user)
+        self.assertEqual(user_run, '')
+
+        EdxLoginUser.objects.create(user=self.user, run='00001234567')
+        user_run_2 = views.get_user_run(self.user)
+        self.assertEqual(user_run_2, '123456-7')
 
 
 class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
