@@ -6,7 +6,10 @@
     <p><strong>Las configuraciones Sence para este curso son:</strong></p>
     <ul>
         <li><strong>- Código Sence del curso:</strong> {{ config.sence_code }}</li>
-        <li><strong>- Identificador Sence del curso:</strong> {{ config.sence_course_code }}</li>
+        <li><strong>- Códigos de curso actualmente utilizados:</strong> 
+            {% if config.sence_course_codes == '' %}undefined{% endif %}
+            {{ config.sence_course_codes }}
+        </li>
         <li><strong>- Linea de Capacitación Sence del Curso:</strong> 
             {% if config.sence_line == 1 %} Sistema Integrado de Capacitación {% endif %}
             {% if config.sence_line == 3 %} Impulsa Personas {% endif %}
