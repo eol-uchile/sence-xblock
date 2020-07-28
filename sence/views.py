@@ -148,7 +148,6 @@ def get_course_setup(course_id):
             'error': 'Course without setup'
         }
     
-
 def get_session_status(user, course_id):
     """
         Get User Status (from django admin)

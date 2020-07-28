@@ -10,7 +10,6 @@ from xblock.core import XBlock
 from xblock.fields import Integer, Scope, Boolean, String
 from xblock.fragment import Fragment
 from xblock.exceptions import JsonHandlerError
-from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 from django.urls import reverse
 
@@ -20,7 +19,7 @@ _ = lambda text: text
 import logging
 logger = logging.getLogger(__name__)
 
-class SenceXBlock(StudioEditableXBlockMixin, XBlock):
+class SenceXBlock(XBlock):
 
     display_name = String(
         display_name=_("Display Name"),
@@ -76,6 +75,14 @@ class SenceXBlock(StudioEditableXBlockMixin, XBlock):
         frag.initialize_js('SenceXBlock', json_args=settings)
         return frag
 
+    def studio_view(self, context=None):
+        context_html = self.get_context()
+        template = self.render_template('static/html/studio.html', context_html)
+        frag = Fragment(template)
+        frag.add_javascript(self.resource_string("static/js/src/studio.js"))
+        frag.initialize_js('SenceStudioXBlock')
+        return frag
+    
     def get_context(self):
         return {
             'xblock': self,
