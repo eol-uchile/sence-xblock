@@ -41,13 +41,23 @@ function SenceXBlock(runtime, element, settings) {
             fetch(url)
                 .then((response) => response.json())
                 .then((response) => {
+                    /* Show error message if exists */
+                    if(response['error']) {
+                        console.error(response);
+                        if(response['error'] == 'sence_course_code') {
+                            $(element).find('.loading').html('No se le ha asignado código de curso. Contacte al equipo docente para solucionar el problema.');
+                        } else {
+                            $(element).find('.loading').html('Hubo un problema al obtener los datos Sence. Recarge la página para intentar nuevamente.');
+                        }
+                        return;
+                    }
                     $(element).find('.sence-content').show();
                     $(element).find('.loading').hide();
                     fill_hidden_form(response);
                     show_student_status(response['session_status']);
                 })
                 .catch((e) => {
-                    console.log(e);
+                    console.error(e);
                     $(element).find('.loading').html('Hubo un problema al obtener los datos Sence. Recarge la página para intentar nuevamente.');
                 } );
         }
