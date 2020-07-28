@@ -20,3 +20,8 @@ The default session expire time is 6 (hours). It can be modified by setting *SEN
 
 To enable this app have to setup the course at */admin/sence/eolsencecoursesetup/*. **Course id**, **Sence Code**, **Sence Line** are Required.
 
+## TESTS
+**Prepare tests:**
+
+    > cd .github/
+    > docker-compose run lms /openedx/requirements/sence-xblock/.github/test.sh
