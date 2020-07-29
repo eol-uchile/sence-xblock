@@ -111,7 +111,7 @@ def get_configurations(course_id):
     """
     Get platform and course configurations
     """
-    from .views import get_course_setup, get_platform_configurations
+    from .views import get_course_setup, get_platform_configurations, get_all_sence_course_codes
     platform_configurations = get_platform_configurations()
     course_setup = get_course_setup(course_id)
     if 'error' in course_setup:
@@ -119,9 +119,11 @@ def get_configurations(course_id):
         sence_course_code = 'undefined'
         sence_line = 'undefined'
     else:
-        sence_code, sence_course_code, sence_line = course_setup
+        sence_code, sence_line = course_setup
+
+    sence_course_codes = ', '.join(get_all_sence_course_codes(course_id))
     return {
         'sence_code': sence_code,
-        'sence_course_code': sence_course_code,
+        'sence_course_codes': sence_course_codes,
         'sence_line': sence_line
     }

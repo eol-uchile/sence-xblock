@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from uchileedxlogin.models import EdxLoginUser
 from opaque_keys.edx.keys import UsageKey
 
-from .models import EolSenceCourseSetup, EolSenceStudentStatus
+from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
 
 from datetime import datetime
 
@@ -28,12 +28,12 @@ def login_sence(request, block_id):
     """
     # check method and params
     if request.method != "GET":
-        return HttpResponse(status=400)
+        return JsonResponse(status=400, data={'error': 'method', 'message': 'Incorrect Request Method'})
 
     # Get Platform Configuration
     platform_configuration = get_platform_configurations()
     if 'error' in platform_configuration:
-        return JsonResponse(status=400, data=platform_configuration)
+        return JsonResponse(status=400, data={'error': 'platform_configuration', 'message': platform_configuration['error']})
     rut_otec, sence_token, sence_api_url = platform_configuration
 
     # Get Course Setup
@@ -41,12 +41,15 @@ def login_sence(request, block_id):
     course_id = usage_key.course_key
     course_setup = get_course_setup(course_id)
     if 'error' in course_setup:
-        return JsonResponse(status=400, data=course_setup)
-    sence_code, sence_course_code, sence_line = course_setup
+        return JsonResponse(status=400, data={'error': 'course_setup', 'message': course_setup['error']})
+    sence_code, sence_line = course_setup
 
     # Get User Data
     user = request.user
     user_run = get_user_run(user)
+    sence_course_code = get_student_sence_course_code(user_run, course_id)
+    if 'error' in sence_course_code:
+        return JsonResponse(status=400, data={'error': 'sence_course_code', 'message': sence_course_code['error']})
 
     # Generate URL's
     login_url = "{}Registro/IniciarSesion".format(sence_api_url)
@@ -156,7 +159,6 @@ def get_course_setup(course_id):
         )
         return (
             setup.sence_code,
-            setup.sence_course_code,
             setup.sence_line
         )
     except EolSenceCourseSetup.DoesNotExist:
@@ -165,6 +167,47 @@ def get_course_setup(course_id):
             'error': 'Course without setup'
         }
 
+"""
+                ____
+                /    \__
+    |\         /    @   \
+    \ \_______|    \  .:|>
+    \      ##|    | \__/
+    |    ####\__/   \
+    /  /  ##       \|
+    /  /__________\  \
+    L_JJ           \__JJ
+ 
+    TODO: Manage student sence course code in the author view (actually in django admin)
+"""
+def get_student_sence_course_code(user, course_id):
+    """
+        Get Student Sence Course Code
+    """
+    try:
+        student_setup = EolSenceStudentSetup.objects.get(
+            user_run=user,
+            course=course_id
+        )
+        return student_setup.sence_course_code
+    except EolSenceStudentSetup.DoesNotExist:
+        logger.warning('Student without sence course code')
+        return {
+            'error': 'Student without sence course code'
+        }
+
+def get_all_sence_course_codes(course_id):
+    """
+        Get all Sence course codes associated
+    """
+    try:
+        sence_course_codes = EolSenceStudentSetup.objects.filter(
+            course=course_id
+        ).values_list('sence_course_code', flat=True).distinct()
+        return list(sence_course_codes)
+    except EolSenceCourseSetup.DoesNotExist:
+        logger.warning('Course without sence_course_codes')
+        return []
 
 def get_session_status(user, course_id):
     """

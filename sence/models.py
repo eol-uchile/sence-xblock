@@ -33,10 +33,27 @@ class EolSenceCourseSetup(models.Model):
         blank=False,
         null=False)
     sence_code = models.CharField(max_length=10, blank=False, null=False)
-    sence_course_code = models.CharField(
-        max_length=50, blank=False, null=False)
     sence_line = models.IntegerField(
         choices=LINE_CHOICES, blank=False, null=False)
+
+class EolSenceStudentSetup(models.Model):
+    """
+        Model with Sence Student Setup
+    """
+    class Meta:
+        index_together = [
+            ["user_run", "course"],
+        ]
+        unique_together = [
+            ["user_run", "course"],
+        ]
+    user_run = models.CharField(max_length=18) # FORMAT: 1234567-8
+    course = CourseKeyField(
+        max_length=50,
+        blank=False,
+        null=False)
+    sence_course_code = models.CharField(
+        max_length=50, blank=False, null=False)
 
 
 class EolSenceStudentStatus(models.Model):
@@ -46,7 +63,7 @@ class EolSenceStudentStatus(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="sence_user")
+        related_name="sence_user_status")
     course = CourseKeyField(max_length=50, blank=False, null=False)
     id_session = models.CharField(max_length=149, blank=False, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
