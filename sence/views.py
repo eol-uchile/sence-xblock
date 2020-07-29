@@ -47,7 +47,7 @@ def login_sence(request, block_id):
     # Get User Data
     user = request.user
     user_run = get_user_run(user)
-    sence_course_code = get_student_sence_course_code(user, course_id)
+    sence_course_code = get_student_sence_course_code(user_run, course_id)
     if 'error' in sence_course_code:
         return JsonResponse(status=400, data={'error': 'sence_course_code', 'message': sence_course_code['error']})
 
@@ -186,7 +186,7 @@ def get_student_sence_course_code(user, course_id):
     """
     try:
         student_setup = EolSenceStudentSetup.objects.get(
-            user=user,
+            user_run=user,
             course=course_id
         )
         return student_setup.sence_course_code

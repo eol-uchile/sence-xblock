@@ -42,15 +42,12 @@ class EolSenceStudentSetup(models.Model):
     """
     class Meta:
         index_together = [
-            ["user", "course"],
+            ["user_run", "course"],
         ]
         unique_together = [
-            ["user", "course"],
+            ["user_run", "course"],
         ]
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="sence_user_setup")
+    user_run = models.CharField(max_length=18) # FORMAT: 1234567-8
     course = CourseKeyField(
         max_length=50,
         blank=False,
