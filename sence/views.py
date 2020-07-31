@@ -133,7 +133,7 @@ def get_platform_configurations():
     rut_otec = configuration_helpers.get_value(
         'SENCE_RUT_OTEC', settings.SENCE_RUT_OTEC)
     sence_token = configuration_helpers.get_value(
-        'SENCE_TOKEN', settings.SENCE_TOKEN).upper()
+        'SENCE_TOKEN', settings.SENCE_TOKEN)
     sence_api_url = configuration_helpers.get_value(
         'SENCE_API_URL', settings.SENCE_API_URL)
     if rut_otec == '' or sence_token == '' or sence_api_url == '' or rut_otec == {
@@ -144,7 +144,7 @@ def get_platform_configurations():
         }
     return (
         rut_otec,
-        sence_token,
+        sence_token.upper(),
         sence_api_url
     )
 
