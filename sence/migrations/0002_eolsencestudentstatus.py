@@ -18,12 +18,30 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='EolSenceStudentStatus',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('course', opaque_keys.edx.django.models.CourseKeyField(max_length=50, unique=True)),
-                ('id_session', models.CharField(max_length=149)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('expires_at', models.DateTimeField(default=sence.models.expire_datetime)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sence_user', to=settings.AUTH_USER_MODEL)),
+                ('id',
+                 models.AutoField(
+                     auto_created=True,
+                     primary_key=True,
+                     serialize=False,
+                     verbose_name='ID')),
+                ('course',
+                 opaque_keys.edx.django.models.CourseKeyField(
+                     max_length=50,
+                     unique=True)),
+                ('id_session',
+                 models.CharField(
+                     max_length=149)),
+                ('created_at',
+                 models.DateTimeField(
+                     auto_now_add=True)),
+                ('expires_at',
+                 models.DateTimeField(
+                     default=sence.models.expire_datetime)),
+                ('user',
+                 models.ForeignKey(
+                     on_delete=django.db.models.deletion.CASCADE,
+                     related_name='sence_user',
+                     to=settings.AUTH_USER_MODEL)),
             ],
         ),
     ]
