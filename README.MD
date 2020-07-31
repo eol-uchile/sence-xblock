@@ -1,5 +1,7 @@
 # SENCE XBLOCK
 
+![https://github.com/eol-uchile/sence-xblock/actions](https://github.com/eol-uchile/sence-xblock/workflows/Python%20application/badge.svg)
+
 Show/hide unit components until students login to Sence
 
 ## **Platform** Configuration
@@ -8,7 +10,7 @@ To enable API have to setup your own variables.
 
     SENCE_RUT_OTEC = 'your_rut_otec'
     SENCE_TOKEN = 'your_sence_token'
-    SENCE_API_URL = 'your_sence_api_url'
+    SENCE_API_URL = 'your_sence_api_url' # ends with '/'
 
 The app will get this variables from *site configurations* (priority) or from *production.py* in the *lms and cms settings*.
 
@@ -20,7 +22,12 @@ The default session expire time is 6 (hours). It can be modified by setting *SEN
 
 To enable this app have to setup the course at */admin/sence/eolsencecoursesetup/*. **Course id**, **Sence Code**, **Sence Line** are Required.
 
-## TO DO:
+## TESTS
+**Prepare tests:**
 
+    > cd .github/
+    > docker-compose run lms /openedx/requirements/sence-xblock/.github/test.sh
+
+## TO DO:
 - [ ] Manage student Sence course code in the author view (actually in django admin)
 - [ ] Sence Logout

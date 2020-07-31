@@ -116,7 +116,6 @@ def get_configurations(course_id):
     course_setup = get_course_setup(course_id)
     if 'error' in course_setup:
         sence_code = 'undefined'
-        sence_course_code = 'undefined'
         sence_line = 'undefined'
     else:
         sence_code, sence_line = course_setup

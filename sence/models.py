@@ -36,6 +36,7 @@ class EolSenceCourseSetup(models.Model):
     sence_line = models.IntegerField(
         choices=LINE_CHOICES, blank=False, null=False)
 
+
 class EolSenceStudentSetup(models.Model):
     """
         Model with Sence Student Setup
@@ -47,7 +48,7 @@ class EolSenceStudentSetup(models.Model):
         unique_together = [
             ["user_run", "course"],
         ]
-    user_run = models.CharField(max_length=18) # FORMAT: 1234567-8
+    user_run = models.CharField(max_length=18)  # FORMAT: 1234567-8
     course = CourseKeyField(
         max_length=50,
         blank=False,
