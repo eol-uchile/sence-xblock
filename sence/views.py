@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
+from django.db import transaction
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
@@ -184,19 +185,18 @@ def get_course_setup(course_id):
         }
 
 
-"""
-                ____
-                /    \__
-    |\         /    @   \
-    \ \_______|    \  .:|>
-    \      ##|    | \__/
-    |    ####\__/   \
-    /  /  ##       \|
-    /  /__________\  \
-    L_JJ           \__JJ
-
-    TODO: Manage student sence course code in the author view (actually in django admin)
-"""
+def set_students_codes(students, course_id):
+    """
+        Set student sence course
+        students is a list of dictionary [{'user_run' : '12345678-9', 'sence_course_code' : 'sence_course_code'}, ...]
+    """
+    with transaction.atomic():
+        for student in students:
+            EolSenceStudentSetup.objects.update_or_create(
+                user_run= student['user_run'],
+                course= course_id,
+                defaults={'sence_course_code': student['sence_course_code']}
+            )
 
 
 def get_student_sence_course_code(user, course_id):
@@ -228,6 +228,19 @@ def get_all_sence_course_codes(course_id):
     except EolSenceCourseSetup.DoesNotExist:
         logger.warning('Course without sence_course_codes')
         return []
+
+def get_all_students_setup(course_id):
+    """
+        Get all Students Setup
+    """
+    try:
+        sence_course_codes = EolSenceStudentSetup.objects.filter(
+            course=course_id
+        ).values('user_run', 'sence_course_code')
+        return sence_course_codes
+    except EolSenceCourseSetup.DoesNotExist:
+        logger.warning('Course without sence_course_codes')
+        return EolSenceStudentSetup.objects.none()
 
 
 def get_session_status(user, course_id):

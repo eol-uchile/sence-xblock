@@ -29,5 +29,4 @@ To enable this app have to setup the course at */admin/sence/eolsencecoursesetup
     > docker-compose run lms /openedx/requirements/sence-xblock/.github/test.sh
 
 ## TO DO:
-- [ ] Manage student Sence course code in the author view (actually in django admin)
 - [ ] Sence Logout

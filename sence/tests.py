@@ -22,7 +22,7 @@ from openedx.core.djangoapps.site_configuration.tests.test_util import (
 
 from uchileedxlogin.models import EdxLoginUser
 
-from .sence import SenceXBlock, get_configurations
+from .sence import SenceXBlock, get_configurations, get_students_setups
 from . import views
 from .models import EolSenceStudentStatus, EolSenceStudentSetup, EolSenceCourseSetup
 
@@ -143,6 +143,28 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         user_status = views.get_session_status(self.user, self.course.id)
         self.assertEqual(user_status['is_active'], False)
 
+    def test_get_all_students_setup(self):
+        """
+            Test get all the students setup
+            1. Without students
+            2. With 2 students
+        """
+        students_setup = views.get_all_students_setup(self.course.id)
+        self.assertEqual(len(students_setup), 0)
+
+        EolSenceStudentSetup.objects.create(
+            user_run='1234567-8',
+            course=self.course.id,
+            sence_course_code='code_1'
+        )
+        EolSenceStudentSetup.objects.create(
+            user_run='323213-3',
+            course=self.course.id,
+            sence_course_code='code_1'
+        )
+        students_setup = views.get_all_students_setup(self.course.id)
+        self.assertEqual(len(students_setup), 2)
+    
     def test_get_all_sence_course_codes(self):
         """
             Test get all the sence_course_codes in a course
@@ -195,6 +217,30 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             '1234567-9', self.course.id)
         self.assertEqual(sence_course_code, 'code')
 
+    def test_set_students_codes(self):
+        """
+            Test setting students codes
+            1. Without students
+            1. With 2 students
+        """
+        views.set_students_codes([], self.course.id)
+        students_setup = EolSenceStudentSetup.objects.filter(course=self.course.id)
+        self.assertEqual(students_setup.count(), 0)
+        
+        students = [
+            {
+                'user_run' : '12345678-9', 
+                'sence_course_code' : 'sence_course_code'
+            },
+            {
+                'user_run' : '543524-9', 
+                'sence_course_code' : 'sence_course_code'
+            },
+        ]
+        views.set_students_codes(students, self.course.id)
+        students_setup = EolSenceStudentSetup.objects.filter(course=self.course.id)
+        self.assertEqual(students_setup.count(), 2)
+    
     def test_get_course_setup(self):
         """
             Test getting course setup
@@ -390,6 +436,7 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
             user_id=XBLOCK_RUNTIME_USER_ID,
         )
         scope_ids = Mock()
+        scope_ids.usage_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         field_data = DictFieldData(kw)
         xblock = SenceXBlock(runtime, field_data, scope_ids)
         xblock.xmodule_runtime = runtime
@@ -520,3 +567,66 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
                          {'sence_line': 3,
                           'sence_code': 'sence_code',
                           'sence_course_codes': 'code_1, code_2'})
+
+    def test_get_students_setups(self):
+        """
+            Test get students setup string separated by \n
+            1. Without students setups
+            2. With one student
+            3. With two students
+        """
+        students_setups = get_students_setups(self.course.id)
+        self.assertEqual(students_setups, '')
+
+        EolSenceStudentSetup.objects.create(
+            user_run='1234567-8',
+            course=self.course.id,
+            sence_course_code='code_1'
+        )
+        students_setups = get_students_setups(self.course.id)
+        self.assertEqual(students_setups, '1234567-8 code_1\n')
+
+
+        EolSenceStudentSetup.objects.create(
+            user_run='4312214-8',
+            course=self.course.id,
+            sence_course_code='code_1'
+        )
+        students_setups = get_students_setups(self.course.id)
+        self.assertEqual(students_setups, '1234567-8 code_1\n4312214-8 code_1\n')
+
+    def test_save_students_codes(self):
+        """
+            Test studio submit save_students_codes
+            1. With correct data
+            2. With incorrect data (first student without code)
+            3. With incorrect data (first student with incorrect run format)
+        """
+        request = TestRequest()
+        request.method = 'POST'
+        post_data = {
+            'students_codes' : '1234567-8 code_1\n4312214-8 code_1\n'
+        }
+        data = json.dumps(post_data)
+        request.body = data
+        request.params = post_data
+        response = self.xblock.save_students_codes(request)
+        self.assertEqual(response.status_code, 200)
+
+        post_data = {
+            'students_codes' : '1234567-8\n4312214-8 code_1\n'
+        }
+        data = json.dumps(post_data)
+        request.body = data
+        request.params = post_data
+        response = self.xblock.save_students_codes(request)
+        self.assertEqual(response.status_code, 400)
+
+        post_data = {
+            'students_codes' : '12345678 code_1\n4312214-8 code_1\n'
+        }
+        data = json.dumps(post_data)
+        request.body = data
+        request.params = post_data
+        response = self.xblock.save_students_codes(request)
+        self.assertEqual(response.status_code, 400)

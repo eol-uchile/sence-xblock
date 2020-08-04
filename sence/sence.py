@@ -5,11 +5,14 @@ import json
 import pkg_resources
 
 from django.template import Context, Template
+from webob import Response
 
 from xblock.core import XBlock
 from xblock.fields import Integer, Scope, Boolean, String
 from xblock.fragment import Fragment
 from xblock.exceptions import JsonHandlerError
+from opaque_keys.edx.keys import UsageKey
+from six import text_type
 
 from django.urls import reverse
 
@@ -80,6 +83,9 @@ class SenceXBlock(XBlock):
 
     def studio_view(self, context=None):
         context_html = self.get_context()
+        usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
+        course_id = usage_key.course_key
+        context_html['students_setup'] = get_students_setups(course_id)
         template = self.render_template(
             'static/html/studio.html', context_html)
         frag = Fragment(template)
@@ -96,6 +102,31 @@ class SenceXBlock(XBlock):
                 'user_is_staff',
                 False),
         }
+
+    @XBlock.handler
+    def save_students_codes(self, request, suffix=''):
+        from .views import set_students_codes
+        students_codes = request.params['students_codes'].rstrip("\n")
+        students = []
+        for student in students_codes.split('\n'):
+            student_data = student.split(' ')
+            if len(student_data) == 2:
+                # RUN WITH '-' AND WITHOUT '.'
+                if '-' in student_data[0] and '.' not in student_data[0]:
+                    students.append({
+                        'user_run' : student_data[0],
+                        'sence_course_code' : student_data[1]
+                    })
+                else:
+                    error = '[ERROR] Invalid Format RUN {}'.format(student_data[0])
+                    return Response(json={'result': 'error', 'message': error}, status=400)
+            else:
+                error = '[ERROR] Invalid Line: {}'.format(student)
+                return Response(json={'result': 'error', 'message': error}, status=400)
+        usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
+        course_id = usage_key.course_key
+        set_students_codes(students, course_id)
+        return Response(json={'result': 'success', 'message': 'hola'}, status=200)
 
     @staticmethod
     def workbench_scenarios():
@@ -126,3 +157,14 @@ def get_configurations(course_id):
         'sence_course_codes': sence_course_codes,
         'sence_line': sence_line
     }
+
+def get_students_setups(course_id):
+    """
+        Get all the students setups, and return string with the values separated by \n
+    """
+    from .views import get_all_students_setup
+    students = get_all_students_setup(course_id)
+    students_text = ''
+    for s in students:
+        students_text += '{} {}\n'.format(s['user_run'], s['sence_course_code'])
+    return students_text

@@ -1,11 +1,23 @@
 {% load i18n %}
 <div class="wrapper-comp-settings is-active editor-with-buttons" id="settings-tab">
-  <p style='text-align: center; margin-top: 15px;'>Para configurar/modificar este componente se debe contactar a la administración de la plataforma.</p>
+  <ul class="list-input settings-list">
+    <li class="field comp-setting-entry is-set">
+      <div class="wrapper-comp-setting">
+        <label class="label setting-label" for="students_codes">Códigos de Curso</label>
+        <textarea class="input setting-input" name="students_codes" id="students_codes" type="text" rows="10" cols="70" placeholder='12345678-9 codigo_1&#10;98765432-1 codigo_2'>{{ students_setup }}</textarea>
+      </div>
+      <span class="tip setting-help">Ingresa los RUN y Códigos de Curso asociados a cada estudiante con el formato "RUN CODIGO", considerando el RUN con guión y sin puntos (ej. 12345678-9). <strong>Se debe separar cada estudiante con un salto de línea.</strong></span> 
+    </li>
+  </ul>
   <div class="xblock-actions">
     <ul>
       <li class="action-item">
-        <a href="#" class="button action-primary cancel-button">{% trans "Cancel" %}</a>
+        <a href="#" class="button action-primary save-students-codes-button">{% trans "Save" %}</a>
       </li>
+      <li class="action-item">
+        <a href="#" class="button cancel-button">{% trans "Close" %}</a>
+      </li>
+      <strong><span class='error-message' style='color: #c0383f'></span></strong>
     </ul>
   </div>
 </div>
