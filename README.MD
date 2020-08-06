@@ -30,3 +30,4 @@ To enable this app have to setup the course at */admin/sence/eolsencecoursesetup
 
 ## TO DO:
 - [ ] Sence Logout
+- [ ] Attendance Report

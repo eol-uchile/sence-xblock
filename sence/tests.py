@@ -133,6 +133,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         )
         user_status = views.get_session_status(self.user, self.course.id)
         self.assertEqual(user_status['is_active'], True)
+        self.assertEqual(user_status['id_session'], 'id_session')
 
         EolSenceStudentStatus.objects.create(
             user=self.user,
@@ -142,6 +143,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         )
         user_status = views.get_session_status(self.user, self.course.id)
         self.assertEqual(user_status['is_active'], False)
+        self.assertEqual(user_status['id_session'], 'id_session')
 
     def test_get_all_students_setup(self):
         """
@@ -278,16 +280,26 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
 
     def test_set_student_status(self):
         """
-            Test set student status.
-            Test created_at and expires_at consistency
+            [LOGIN] Test set student status.
+            [LOGIN] Test created_at and expires_at consistency
+            [LOGOUT] Test set expire time consistency
         """
-        views.set_student_status(self.user, self.course.id, 'id_session')
+        views.set_student_status('login', self.user, self.course.id, 'id_session')
         status = EolSenceStudentStatus.objects.filter(
             user=self.user,
             course=self.course.id
         ).latest('created_at')
         self.assertEqual(status.id_session, 'id_session')
+
         self.assertEqual(status.created_at < status.expires_at, True)
+
+        views.set_student_status('logout', self.user, self.course.id) # Set expires_at = datetime.now()
+        status_updated = EolSenceStudentStatus.objects.filter(
+            user=self.user,
+            course=self.course.id
+        ).latest('created_at')
+        # datetime.now() < datetime.now() + timedelta(hours=EXPIRE_TIME)
+        self.assertEqual(status_updated.expires_at < status.expires_at, True)
 
     def test_login_sence_fail(self):
         """
@@ -314,6 +326,31 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertIn(b'GlosaError', response.content)
         self.assertIn(b'class="error_sence"', response.content)
 
+    def test_logout_sence_fail(self):
+        """
+            Test Logout Sence Fail (POST Request)
+            1. GET Request
+            2. POST Request without data
+            3. Correct POST Request
+        """
+        response = self.client.get(reverse('logout_sence_fail'))
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(reverse('logout_sence_fail'))
+        self.assertEqual(response.status_code, 400)
+
+        data = {
+            'GlosaError': 'GlosaError',
+            'IdSesionAlumno': 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        }
+        response = self.client.post(reverse('logout_sence_fail'), data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            b'Espere un momento mientras se redirecciona nuevamente al curso',
+            response.content)
+        self.assertIn(b'GlosaError', response.content)
+        self.assertIn(b'class="error_sence"', response.content)
+
     def test_login_sence_success(self):
         """
             Test Login Sence Success (POST Request)
@@ -332,6 +369,28 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             'IdSesionAlumno': 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         }
         response = self.client.post(reverse('login_sence_success'), data=data)
+        self.assertEqual(response.status_code, 302)  # Redirect
+
+    def test_logout_sence_success(self):
+        """
+            Test Logout Sence Success (POST Request)
+            1. GET Request
+            2. POST Request without data
+            3. Correct POST Request
+        """
+        response = self.client.get(reverse('logout_sence_success'))
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(reverse('logout_sence_success'))
+        self.assertEqual(response.status_code, 400)
+
+
+        location = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(location)
+        data = {
+            'IdSesionAlumno': 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        }
+        response = self.client.post(reverse('logout_sence_success'), data=data)
         self.assertEqual(response.status_code, 302)  # Redirect
 
     @with_site_configuration(configuration=test_config)
@@ -394,9 +453,12 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             'RunAlumno': '1234567-8',
             'RutOtec': 'SENCE_RUT_OTEC',
             'Token': 'SENCE_TOKEN',
-            'UrlError': 'http://testserver/sence/login/fail',
-            'UrlRetoma': 'http://testserver/sence/login/success',
+            'UrlErrorLogin': 'http://testserver/sence/login/fail',
+            'UrlRetomaLogin': 'http://testserver/sence/login/success',
+            'UrlErrorLogout': 'http://testserver/sence/logout/fail',
+            'UrlRetomaLogout': 'http://testserver/sence/logout/success',
             'login_url': 'SENCE_API_URL/Registro/IniciarSesion',
+            'logout_url': 'SENCE_API_URL/Registro/CerrarSesion',
             'session_status': {
                 'is_active': False}}
         response = self.client.get(
@@ -418,6 +480,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                     'block_id': block_id}))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['session_status']['is_active'], True)
+        self.assertEqual(response.json()['session_status']['id_session'], 'id_session')
 
 
 class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
@@ -517,7 +580,7 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
         student_view_html = student_view.content
         self.assertIn('class="sence_block', student_view_html)
         self.assertIn(
-            '<form id="login_sence" action="" method="POST">',
+            '<form id="form_sence" action="" method="POST">',
             student_view_html)
 
     def test_studio_view_render(self):

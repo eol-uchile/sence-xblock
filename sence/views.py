@@ -70,8 +70,11 @@ def login_sence(request, block_id):
 
     # Generate URL's
     login_url = "{}Registro/IniciarSesion".format(sence_api_url)
-    url_success = request.build_absolute_uri(reverse('login_sence_success'))
-    url_fail = request.build_absolute_uri(reverse('login_sence_fail'))
+    logout_url = "{}Registro/CerrarSesion".format(sence_api_url)
+    url_login_success = request.build_absolute_uri(reverse('login_sence_success'))
+    url_login_fail = request.build_absolute_uri(reverse('login_sence_fail'))
+    url_logout_success = request.build_absolute_uri(reverse('logout_sence_success'))
+    url_logout_fail = request.build_absolute_uri(reverse('logout_sence_fail'))
 
     # Get user session status
     session_status = get_session_status(user, course_id)
@@ -79,6 +82,7 @@ def login_sence(request, block_id):
     # Return Data
     data = {
         'login_url': login_url,
+        'logout_url': logout_url,
         'RutOtec': rut_otec,
         'Token': sence_token,
         'CodSence': sence_code,
@@ -86,8 +90,10 @@ def login_sence(request, block_id):
         'LineaCapacitacion': sence_line,
         'RunAlumno': user_run,
         'IdSesionAlumno': block_id,
-        'UrlRetoma': url_success,
-        'UrlError': url_fail,
+        'UrlRetomaLogin': url_login_success,
+        'UrlErrorLogin': url_login_fail,
+        'UrlRetomaLogout': url_logout_success,
+        'UrlErrorLogout': url_logout_fail,
         'session_status': session_status,
     }
     return JsonResponse(data)
@@ -103,6 +109,7 @@ def login_sence_success(request):
     location = request.POST['IdSesionAlumno']
     usage_key = UsageKey.from_string(location)
     set_student_status(
+        'login',
         request.user,
         usage_key.course_key,
         request.POST['IdSesionSence'])
@@ -131,16 +138,66 @@ def login_sence_fail(request):
                 'course_id': usage_key.course_key, 'location': location})}
     return render(request, 'sence/error.html', context)
 
+@csrf_exempt
+def logout_sence_success(request):
+    """
+        Success Logout Request
+    """
+    if request.method != "POST" or 'IdSesionAlumno' not in request.POST:
+        return HttpResponse(status=400)
+    location = request.POST['IdSesionAlumno']
+    usage_key = UsageKey.from_string(location)
+    set_student_status(
+        'logout',
+        request.user,
+        usage_key.course_key)
+    return HttpResponseRedirect(
+        reverse(
+            'jump_to',
+            kwargs={
+                'course_id': usage_key.course_key,
+                'location': location}))
 
-def set_student_status(user, course_id, id_session):
+
+@csrf_exempt
+def logout_sence_fail(request):
+    """
+        Fail Logout Request. Render a page with a redirect timeout
+    """
+    if request.method != "POST" or 'GlosaError' not in request.POST or 'IdSesionAlumno' not in request.POST:
+        return HttpResponse(status=400)
+    logger.warning('Logout Sence Fail {}'.format(request.POST['GlosaError']))
+    location = request.POST['IdSesionAlumno']
+    usage_key = UsageKey.from_string(location)
+    context = {
+        'message': '[ERROR] Cierre de sesión fallido. Código de error: {}'.format(
+            request.POST['GlosaError']), 'url': reverse(
+            'jump_to', kwargs={
+                'course_id': usage_key.course_key, 'location': location})}
+    return render(request, 'sence/error.html', context)
+
+
+
+def set_student_status(action, user, course_id, id_session=None):
     """
         Associate sence session_id with the user
     """
-    student_status = EolSenceStudentStatus.objects.create(
-        user=user,
-        course=course_id,
-        id_session=id_session
-    )
+    if action == 'login':
+        student_status = EolSenceStudentStatus.objects.create(
+            user=user,
+            course=course_id,
+            id_session=id_session
+        )
+    elif action == 'logout':
+        try:
+            student_status = EolSenceStudentStatus.objects.filter(
+                user=user,
+                course=course_id
+            ).latest('created_at')
+            student_status.expires_at = datetime.now()
+            student_status.save()
+        except EolSenceStudentStatus.DoesNotExist:
+            logger.warning('Trying to logout without login')
 
 
 def get_platform_configurations():
@@ -257,7 +314,8 @@ def get_session_status(user, course_id):
             # now() parameter because can't compare offset-naive and
             # offset-aware datetimes
             'is_active': datetime.now(status.expires_at.tzinfo) < status.expires_at,
-            'created_at': status.created_at
+            'created_at': status.created_at,
+            'id_session': status.id_session
         }
     except EolSenceStudentStatus.DoesNotExist:
         return {

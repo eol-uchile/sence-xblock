@@ -3,24 +3,33 @@ function SenceXBlock(runtime, element, settings) {
     $(function($) {
         /* Insert values into hidden form */
         const fill_hidden_form = (data) => {
-            $(element).find('#login_sence').attr('action', data['login_url']);
-            $(element).find('#login_sence #RutOtec').val(data['RutOtec']);
-            $(element).find('#login_sence #Token').val(data['Token']);
-            $(element).find('#login_sence #CodSence').val(data['CodSence']);
-            $(element).find('#login_sence #CodigoCurso').val(data['CodigoCurso']);
-            $(element).find('#login_sence #LineaCapacitacion').val(data['LineaCapacitacion']);
-            $(element).find('#login_sence #RunAlumno').val(data['RunAlumno']);
-            $(element).find('#login_sence #IdSesionAlumno').val(data['IdSesionAlumno']);
-            $(element).find('#login_sence #UrlRetoma').val(data['UrlRetoma']);
-            $(element).find('#login_sence #UrlError').val(data['UrlError']);
-            $(element).find('#login_sence #submit_login_sence').prop( "disabled", false );
+            if(data['session_status'].is_active) {
+                /* Logout */
+                $(element).find('#form_sence').attr('action', data['logout_url']);
+                $(element).find('#form_sence #UrlRetoma').val(data['UrlRetomaLogout']);
+                $(element).find('#form_sence #UrlError').val(data['UrlErrorLogout']);
+                $(element).find('#form_sence #IdSesionSence').val(data['session_status'].id_session);
+            } else {
+                /* Login */
+                $(element).find('#form_sence').attr('action', data['login_url']);
+                $(element).find('#form_sence #UrlRetoma').val(data['UrlRetomaLogin']);
+                $(element).find('#form_sence #UrlError').val(data['UrlErrorLogin']);
+            }
+            $(element).find('#form_sence #RutOtec').val(data['RutOtec']);
+            $(element).find('#form_sence #Token').val(data['Token']);
+            $(element).find('#form_sence #CodSence').val(data['CodSence']);
+            $(element).find('#form_sence #CodigoCurso').val(data['CodigoCurso']);
+            $(element).find('#form_sence #LineaCapacitacion').val(data['LineaCapacitacion']);
+            $(element).find('#form_sence #RunAlumno').val(data['RunAlumno']);
+            $(element).find('#form_sence #IdSesionAlumno').val(data['IdSesionAlumno']);
+            $(element).find('#form_sence #submit_form_sence').prop( "disabled", false );
         }
 
         /* Show student status (check if user has an active Sence session) */
         const show_student_status = (status) => {
             if( status.is_active ){
                 $(element).find('.detail').html('<strong>Cuentas con una sesión activa en Sence.</strong>');
-                $(element).find('#login_sence #submit_login_sence').hide();
+                $(element).find('#form_sence #submit_form_sence').val('Cerrar Sesión en Sence');
                 $(element).find('.help').hide();
                 $('.vert').not(`[data-id*="${settings.location}"]`).show();
             } else {
