@@ -45,6 +45,7 @@ class TestRequest(object):
     """
     Module helper for @json_handler
     """
+    user = None
     method = None
     body = None
     success = None
@@ -527,7 +528,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                 }
             )
         )
-        self.assertEqual(response.status_code, 302)  # Not Staff
+        self.assertEqual(response.status_code, 404)  # Not Staff
 
         # 2
         response = self.staff_client.get(
@@ -537,7 +538,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                 }
             )
         )
-        self.assertEqual(response.status_code, 200)  # Not Staff
+        self.assertEqual(response.status_code, 200)  # Staff
         data = response.content.decode().split("\r\n")
         self.assertEqual(
             data[0],
@@ -775,23 +776,27 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
         data = json.dumps(post_data)
         request.body = data
         request.params = post_data
-        response = self.xblock.save_students_codes(request)
-        self.assertEqual(response.status_code, 200)
+        request.user = self.staff_user
+        get_current_request_response = request # only for request.user 
+        with patch('crum.get_current_request',
+                       return_value=get_current_request_response):
+            response = self.xblock.save_students_codes(request)
+            self.assertEqual(response.status_code, 200)
 
-        post_data = {
-            'students_codes': '1234567-8\n4312214-8 code_1\n'
-        }
-        data = json.dumps(post_data)
-        request.body = data
-        request.params = post_data
-        response = self.xblock.save_students_codes(request)
-        self.assertEqual(response.status_code, 400)
+            post_data = {
+                'students_codes': '1234567-8\n4312214-8 code_1\n'
+            }
+            data = json.dumps(post_data)
+            request.body = data
+            request.params = post_data
+            response = self.xblock.save_students_codes(request)
+            self.assertEqual(response.status_code, 400)
 
-        post_data = {
-            'students_codes': '12345678 code_1\n4312214-8 code_1\n'
-        }
-        data = json.dumps(post_data)
-        request.body = data
-        request.params = post_data
-        response = self.xblock.save_students_codes(request)
-        self.assertEqual(response.status_code, 400)
+            post_data = {
+                'students_codes': '12345678 code_1\n4312214-8 code_1\n'
+            }
+            data = json.dumps(post_data)
+            request.body = data
+            request.params = post_data
+            response = self.xblock.save_students_codes(request)
+            self.assertEqual(response.status_code, 400)

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.shortcuts import render
 from django.db import transaction
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -12,8 +12,8 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 
 from django.contrib.auth.models import User
 from uchileedxlogin.models import EdxLoginUser
-from opaque_keys.edx.keys import UsageKey
-
+from opaque_keys.edx.keys import UsageKey, CourseKey
+from courseware.access import has_access
 from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
 
 from datetime import datetime
@@ -30,6 +30,9 @@ def export_attendance(request, block_id):
     """
     usage_key = UsageKey.from_string(block_id)
     course_id = usage_key.course_key
+    staff_access = bool(has_access(request.user, 'staff', course_id))
+    if not staff_access:
+        raise Http404()
     data = []
     status = EolSenceStudentStatus.objects.filter(
         course=course_id

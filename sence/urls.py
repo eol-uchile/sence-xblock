@@ -6,7 +6,6 @@ from django.conf import settings
 from .views import login_sence, login_sence_success, login_sence_fail, logout_sence_success, logout_sence_fail, export_attendance
 
 from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
 
 urlpatterns = (
     url(
@@ -36,7 +35,7 @@ urlpatterns = (
     ),
     url(
         r'^sence/export/attendance/(?P<block_id>.*)$',
-        staff_member_required(export_attendance),
+        login_required(export_attendance),
         name='sence_export_attendance',
     )
 )

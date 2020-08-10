@@ -13,8 +13,8 @@ from xblock.fragment import Fragment
 from xblock.exceptions import JsonHandlerError
 from opaque_keys.edx.keys import UsageKey
 from six import text_type
-
 from django.urls import reverse
+from openedx.core.djangoapps.theming.helpers import get_current_request
 
 # Make '_' a no-op so we can scrape strings
 
@@ -26,6 +26,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+@XBlock.needs('user')
 class SenceXBlock(XBlock):
 
     display_name = String(
@@ -107,7 +108,18 @@ class SenceXBlock(XBlock):
 
     @XBlock.handler
     def save_students_codes(self, request, suffix=''):
+        from courseware.access import has_access
         from .views import set_students_codes
+        usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
+        course_id = usage_key.course_key
+        myrequest = get_current_request()
+        staff_access = bool(has_access(myrequest.user, 'staff', course_id))
+        if not staff_access:
+            return Response(
+                json={
+                    'result': 'error',
+                    'message': '[ERROR] Unauthorized'},
+                status=401)
         students_codes = request.params['students_codes'].rstrip("\n")
         students = []
         for student in students_codes.split('\n'):
@@ -134,8 +146,6 @@ class SenceXBlock(XBlock):
                         'result': 'error',
                         'message': error},
                     status=400)
-        usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
-        course_id = usage_key.course_key
         set_students_codes(students, course_id)
         return Response(
             json={
