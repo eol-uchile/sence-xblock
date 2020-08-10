@@ -184,7 +184,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         )
         students_setup = views.get_all_students_setup(self.course.id)
         self.assertEqual(len(students_setup), 2)
-    
+
     def test_get_all_sence_course_codes(self):
         """
             Test get all the sence_course_codes in a course
@@ -244,23 +244,25 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             1. With 2 students
         """
         views.set_students_codes([], self.course.id)
-        students_setup = EolSenceStudentSetup.objects.filter(course=self.course.id)
+        students_setup = EolSenceStudentSetup.objects.filter(
+            course=self.course.id)
         self.assertEqual(students_setup.count(), 0)
-        
+
         students = [
             {
-                'user_run' : '12345678-9', 
-                'sence_course_code' : 'sence_course_code'
+                'user_run': '12345678-9',
+                'sence_course_code': 'sence_course_code'
             },
             {
-                'user_run' : '543524-9', 
-                'sence_course_code' : 'sence_course_code'
+                'user_run': '543524-9',
+                'sence_course_code': 'sence_course_code'
             },
         ]
         views.set_students_codes(students, self.course.id)
-        students_setup = EolSenceStudentSetup.objects.filter(course=self.course.id)
+        students_setup = EolSenceStudentSetup.objects.filter(
+            course=self.course.id)
         self.assertEqual(students_setup.count(), 2)
-    
+
     def test_get_course_setup(self):
         """
             Test getting course setup
@@ -302,7 +304,11 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             [LOGIN] Test created_at and expires_at consistency
             [LOGOUT] Test set expire time consistency
         """
-        views.set_student_status('login', self.user, self.course.id, 'id_session')
+        views.set_student_status(
+            'login',
+            self.user,
+            self.course.id,
+            'id_session')
         status = EolSenceStudentStatus.objects.filter(
             user=self.user,
             course=self.course.id
@@ -311,7 +317,8 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
 
         self.assertEqual(status.created_at < status.expires_at, True)
 
-        views.set_student_status('logout', self.user, self.course.id) # Set expires_at = datetime.now()
+        # Set expires_at = datetime.now()
+        views.set_student_status('logout', self.user, self.course.id)
         status_updated = EolSenceStudentStatus.objects.filter(
             user=self.user,
             course=self.course.id
@@ -401,7 +408,6 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
 
         response = self.client.post(reverse('logout_sence_success'))
         self.assertEqual(response.status_code, 400)
-
 
         location = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         usage_key = UsageKey.from_string(location)
@@ -498,8 +504,9 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                     'block_id': block_id}))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['session_status']['is_active'], True)
-        self.assertEqual(response.json()['session_status']['id_session'], 'id_session')
-
+        self.assertEqual(
+            response.json()['session_status']['id_session'],
+            'id_session')
 
     def test_export_attendance(self):
         """
@@ -512,7 +519,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         usage_key = UsageKey.from_string(block_id)
         course_id = usage_key.course_key
-        #1
+        # 1
         response = self.client.get(
             reverse(
                 'sence_export_attendance', kwargs={
@@ -520,9 +527,9 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                 }
             )
         )
-        self.assertEqual(response.status_code, 302) # Not Staff
+        self.assertEqual(response.status_code, 302)  # Not Staff
 
-        #2
+        # 2
         response = self.staff_client.get(
             reverse(
                 'sence_export_attendance', kwargs={
@@ -530,12 +537,14 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                 }
             )
         )
-        self.assertEqual(response.status_code, 200) # Not Staff
+        self.assertEqual(response.status_code, 200)  # Not Staff
         data = response.content.decode().split("\r\n")
-        self.assertEqual(data[0], "RUN;Usuario;Correo Electrónico;Nombre;Inicio de Sesión (Timezone UTC)")
-        self.assertEqual(len(data)-1, 1) # Second line is empty ''
-    
-        #3
+        self.assertEqual(
+            data[0],
+            "RUN;Usuario;Correo Electrónico;Nombre;Inicio de Sesión (Timezone UTC)")
+        self.assertEqual(len(data) - 1, 1)  # Second line is empty ''
+
+        # 3
         EdxLoginUser.objects.create(user=self.user, run='00001234567')
         EolSenceStudentStatus.objects.create(
             user=self.user,
@@ -550,9 +559,9 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             )
         )
         data = response.content.decode().split("\r\n")
-        self.assertEqual(len(data)-1, 2)
+        self.assertEqual(len(data) - 1, 2)
 
-        #4
+        # 4
         EolSenceStudentStatus.objects.create(
             user=self.user,
             course=course_id,
@@ -572,9 +581,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             )
         )
         data = response.content.decode().split("\r\n")
-        self.assertEqual(len(data)-1, 4)
-
-
+        self.assertEqual(len(data) - 1, 4)
 
 
 class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
@@ -743,14 +750,15 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
         students_setups = get_students_setups(self.course.id)
         self.assertEqual(students_setups, '1234567-8 code_1\n')
 
-
         EolSenceStudentSetup.objects.create(
             user_run='4312214-8',
             course=self.course.id,
             sence_course_code='code_1'
         )
         students_setups = get_students_setups(self.course.id)
-        self.assertEqual(students_setups, '1234567-8 code_1\n4312214-8 code_1\n')
+        self.assertEqual(
+            students_setups,
+            '1234567-8 code_1\n4312214-8 code_1\n')
 
     def test_save_students_codes(self):
         """
@@ -762,7 +770,7 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
         request = TestRequest()
         request.method = 'POST'
         post_data = {
-            'students_codes' : '1234567-8 code_1\n4312214-8 code_1\n'
+            'students_codes': '1234567-8 code_1\n4312214-8 code_1\n'
         }
         data = json.dumps(post_data)
         request.body = data
@@ -771,7 +779,7 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(response.status_code, 200)
 
         post_data = {
-            'students_codes' : '1234567-8\n4312214-8 code_1\n'
+            'students_codes': '1234567-8\n4312214-8 code_1\n'
         }
         data = json.dumps(post_data)
         request.body = data
@@ -780,7 +788,7 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(response.status_code, 400)
 
         post_data = {
-            'students_codes' : '12345678 code_1\n4312214-8 code_1\n'
+            'students_codes': '12345678 code_1\n4312214-8 code_1\n'
         }
         data = json.dumps(post_data)
         request.body = data

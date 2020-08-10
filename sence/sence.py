@@ -17,6 +17,8 @@ from six import text_type
 from django.urls import reverse
 
 # Make '_' a no-op so we can scrape strings
+
+
 def _(text): return text
 
 
@@ -54,7 +56,8 @@ class SenceXBlock(XBlock):
         context_html = self.get_context()
         context_html['config'] = get_configurations(
             self.xmodule_runtime.course_id)
-        context_html['export_attendance_url'] = reverse('sence_export_attendance', kwargs={'block_id': self.location})
+        context_html['export_attendance_url'] = reverse(
+            'sence_export_attendance', kwargs={'block_id': self.location})
         template = self.render_template(
             'static/html/author_view.html', context_html)
         frag = Fragment(template)
@@ -113,19 +116,32 @@ class SenceXBlock(XBlock):
                 # RUN WITH '-' AND WITHOUT '.'
                 if '-' in student_data[0] and '.' not in student_data[0]:
                     students.append({
-                        'user_run' : student_data[0],
-                        'sence_course_code' : student_data[1]
+                        'user_run': student_data[0],
+                        'sence_course_code': student_data[1]
                     })
                 else:
-                    error = '[ERROR] Invalid Format RUN {}'.format(student_data[0])
-                    return Response(json={'result': 'error', 'message': error}, status=400)
+                    error = '[ERROR] Invalid Format RUN {}'.format(
+                        student_data[0])
+                    return Response(
+                        json={
+                            'result': 'error',
+                            'message': error},
+                        status=400)
             else:
                 error = '[ERROR] Invalid Line: {}'.format(student)
-                return Response(json={'result': 'error', 'message': error}, status=400)
+                return Response(
+                    json={
+                        'result': 'error',
+                        'message': error},
+                    status=400)
         usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
         course_id = usage_key.course_key
         set_students_codes(students, course_id)
-        return Response(json={'result': 'success', 'message': 'hola'}, status=200)
+        return Response(
+            json={
+                'result': 'success',
+                'message': 'hola'},
+            status=200)
 
     @staticmethod
     def workbench_scenarios():
@@ -157,6 +173,7 @@ def get_configurations(course_id):
         'sence_line': sence_line
     }
 
+
 def get_students_setups(course_id):
     """
         Get all the students setups, and return string with the values separated by \n
@@ -165,5 +182,6 @@ def get_students_setups(course_id):
     students = get_all_students_setup(course_id)
     students_text = ''
     for s in students:
-        students_text += '{} {}\n'.format(s['user_run'], s['sence_course_code'])
+        students_text += '{} {}\n'.format(s['user_run'],
+                                          s['sence_course_code'])
     return students_text

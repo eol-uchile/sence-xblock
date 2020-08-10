@@ -36,32 +36,35 @@ def export_attendance(request, block_id):
     ).order_by(
         'user__username', 'created_at'
     ).values(
-        'user__username', 
-        'user__email', 
-        'user__profile__name', 
+        'user__username',
+        'user__email',
+        'user__profile__name',
         'user__edxloginuser__run',
         'created_at',
     )
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="SENCE_{}.csv"'.format(course_id)
+    response['Content-Disposition'] = 'attachment; filename="SENCE_{}.csv"'.format(
+        course_id)
     writer = csv.writer(
         response,
         delimiter=';',
         dialect='excel',
         encoding='utf-8')
     data = []
-    data.append(['RUN', 'Usuario', 'Correo Electrónico', 'Nombre', 'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
+    data.append(['RUN', 'Usuario', 'Correo Electrónico', 'Nombre',
+                 'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
     for s in status:
         logger.warning(type(s['user__profile__name']))
         data.append([
-            format_run(s['user__edxloginuser__run']), 
-            s['user__username'], 
-            s['user__email'],  
-            s['user__profile__name'], 
+            format_run(s['user__edxloginuser__run']),
+            s['user__username'],
+            s['user__email'],
+            s['user__profile__name'],
             s['created_at'].strftime("%d-%m-%Y-%H:%M:%S")
         ])
     writer.writerows(data)
     return response
+
 
 def login_sence(request, block_id):
     """
@@ -112,9 +115,11 @@ def login_sence(request, block_id):
     # Generate URL's
     login_url = "{}Registro/IniciarSesion".format(sence_api_url)
     logout_url = "{}Registro/CerrarSesion".format(sence_api_url)
-    url_login_success = request.build_absolute_uri(reverse('login_sence_success'))
+    url_login_success = request.build_absolute_uri(
+        reverse('login_sence_success'))
     url_login_fail = request.build_absolute_uri(reverse('login_sence_fail'))
-    url_logout_success = request.build_absolute_uri(reverse('logout_sence_success'))
+    url_logout_success = request.build_absolute_uri(
+        reverse('logout_sence_success'))
     url_logout_fail = request.build_absolute_uri(reverse('logout_sence_fail'))
 
     # Get user session status
@@ -179,6 +184,7 @@ def login_sence_fail(request):
                 'course_id': usage_key.course_key, 'location': location})}
     return render(request, 'sence/error.html', context)
 
+
 @csrf_exempt
 def logout_sence_success(request):
     """
@@ -216,7 +222,6 @@ def logout_sence_fail(request):
             'jump_to', kwargs={
                 'course_id': usage_key.course_key, 'location': location})}
     return render(request, 'sence/error.html', context)
-
 
 
 def set_student_status(action, user, course_id, id_session=None):
@@ -291,8 +296,8 @@ def set_students_codes(students, course_id):
     with transaction.atomic():
         for student in students:
             EolSenceStudentSetup.objects.update_or_create(
-                user_run= student['user_run'],
-                course= course_id,
+                user_run=student['user_run'],
+                course=course_id,
                 defaults={'sence_course_code': student['sence_course_code']}
             )
 
@@ -326,6 +331,7 @@ def get_all_sence_course_codes(course_id):
     except EolSenceCourseSetup.DoesNotExist:
         logger.warning('Course without sence_course_codes')
         return []
+
 
 def get_all_students_setup(course_id):
     """
