@@ -10,9 +10,12 @@
             {% if config.sence_course_codes == '' %}undefined{% endif %}
             {{ config.sence_course_codes }}
         </li>
-        <li><strong>- Linea de Capacitación Sence del Curso:</strong> 
+        <li><strong>- Línea de Capacitación Sence del Curso:</strong> 
             {% if config.sence_line == 1 %} Sistema Integrado de Capacitación {% endif %}
             {% if config.sence_line == 3 %} Impulsa Personas {% endif %}
         </li>
     </ul> 
+    <a href="{{ export_attendance_url }}" style="font-size: 1.2em;">
+    <span><i class="fa fa-file-excel-o" aria-hidden="true"></i> Descargar Registros de Asistencia</span>
+    </a>
 </div>

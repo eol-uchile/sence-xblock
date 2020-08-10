@@ -81,6 +81,24 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                     username=uname,
                     password=password))
 
+            # Create and Enroll staff user
+            self.staff_user = UserFactory(
+                username='staff_user',
+                password='test',
+                email='staff@edx.org',
+                is_staff=True)
+            CourseEnrollmentFactory(
+                user=self.staff_user,
+                course_id=self.course.id)
+            CourseStaffRole(self.course.id).add_users(self.staff_user)
+
+            # Log the user staff in
+            self.staff_client = Client()
+            self.assertTrue(
+                self.staff_client.login(
+                    username='staff_user',
+                    password='test'))
+
     def test_format_run(self):
         """
             Test format run to sence requirements (123456-7)
@@ -481,6 +499,82 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['session_status']['is_active'], True)
         self.assertEqual(response.json()['session_status']['id_session'], 'id_session')
+
+
+    def test_export_attendance(self):
+        """
+            Test Export CSV with Students attendance
+            1. With not-staff user
+            2. With staff-user and empty records
+            3. With one student status
+            4. With more students status
+        """
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(block_id)
+        course_id = usage_key.course_key
+        #1
+        response = self.client.get(
+            reverse(
+                'sence_export_attendance', kwargs={
+                    'block_id': block_id
+                }
+            )
+        )
+        self.assertEqual(response.status_code, 302) # Not Staff
+
+        #2
+        response = self.staff_client.get(
+            reverse(
+                'sence_export_attendance', kwargs={
+                    'block_id': block_id
+                }
+            )
+        )
+        self.assertEqual(response.status_code, 200) # Not Staff
+        data = response.content.decode().split("\r\n")
+        self.assertEqual(data[0], "RUN;Usuario;Correo Electrónico;Nombre;Inicio de Sesión (Timezone UTC)")
+        self.assertEqual(len(data)-1, 1) # Second line is empty ''
+    
+        #3
+        EdxLoginUser.objects.create(user=self.user, run='00001234567')
+        EolSenceStudentStatus.objects.create(
+            user=self.user,
+            course=course_id,
+            id_session='id_session'
+        )
+        response = self.staff_client.get(
+            reverse(
+                'sence_export_attendance', kwargs={
+                    'block_id': block_id
+                }
+            )
+        )
+        data = response.content.decode().split("\r\n")
+        self.assertEqual(len(data)-1, 2)
+
+        #4
+        EolSenceStudentStatus.objects.create(
+            user=self.user,
+            course=course_id,
+            id_session='id_session'
+        )
+        EdxLoginUser.objects.create(user=self.staff_user, run='0000321314321K')
+        EolSenceStudentStatus.objects.create(
+            user=self.staff_user,
+            course=course_id,
+            id_session='id_session'
+        )
+        response = self.staff_client.get(
+            reverse(
+                'sence_export_attendance', kwargs={
+                    'block_id': block_id
+                }
+            )
+        )
+        data = response.content.decode().split("\r\n")
+        self.assertEqual(len(data)-1, 4)
+
+
 
 
 class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):

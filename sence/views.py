@@ -18,9 +18,50 @@ from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentSt
 
 from datetime import datetime
 
+import unicodecsv as csv
+
 import logging
 logger = logging.getLogger(__name__)
 
+
+def export_attendance(request, block_id):
+    """
+        Export CSV with students attendance
+    """
+    usage_key = UsageKey.from_string(block_id)
+    course_id = usage_key.course_key
+    data = []
+    status = EolSenceStudentStatus.objects.filter(
+        course=course_id
+    ).order_by(
+        'user__username', 'created_at'
+    ).values(
+        'user__username', 
+        'user__email', 
+        'user__profile__name', 
+        'user__edxloginuser__run',
+        'created_at',
+    )
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="SENCE_{}.csv"'.format(course_id)
+    writer = csv.writer(
+        response,
+        delimiter=';',
+        dialect='excel',
+        encoding='utf-8')
+    data = []
+    data.append(['RUN', 'Usuario', 'Correo Electrónico', 'Nombre', 'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
+    for s in status:
+        logger.warning(type(s['user__profile__name']))
+        data.append([
+            format_run(s['user__edxloginuser__run']), 
+            s['user__username'], 
+            s['user__email'],  
+            s['user__profile__name'], 
+            s['created_at'].strftime("%d-%m-%Y-%H:%M:%S")
+        ])
+    writer.writerows(data)
+    return response
 
 def login_sence(request, block_id):
     """

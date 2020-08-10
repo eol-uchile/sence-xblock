@@ -17,8 +17,6 @@ from six import text_type
 from django.urls import reverse
 
 # Make '_' a no-op so we can scrape strings
-
-
 def _(text): return text
 
 
@@ -56,6 +54,7 @@ class SenceXBlock(XBlock):
         context_html = self.get_context()
         context_html['config'] = get_configurations(
             self.xmodule_runtime.course_id)
+        context_html['export_attendance_url'] = reverse('sence_export_attendance', kwargs={'block_id': self.location})
         template = self.render_template(
             'static/html/author_view.html', context_html)
         frag = Fragment(template)

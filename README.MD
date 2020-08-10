@@ -26,7 +26,7 @@ To enable this app have to setup the course at */admin/sence/eolsencecoursesetup
 **Prepare tests:**
 
     > cd .github/
-    > docker-compose run lms /openedx/requirements/sence-xblock/.github/test.sh
+    > docker-compose run --rm lms /openedx/requirements/sence-xblock/.github/test.sh
 
 ## TO DO:
 - [ ] Attendance Report

@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from django.conf.urls import url
 from django.conf import settings
 
-from .views import login_sence, login_sence_success, login_sence_fail, logout_sence_success, logout_sence_fail
+from .views import login_sence, login_sence_success, login_sence_fail, logout_sence_success, logout_sence_fail, export_attendance
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 
 urlpatterns = (
     url(
@@ -33,4 +34,9 @@ urlpatterns = (
         login_required(logout_sence_fail),
         name='logout_sence_fail',
     ),
+    url(
+        r'^sence/export/attendance/(?P<block_id>.*)$',
+        staff_member_required(export_attendance),
+        name='sence_export_attendance',
+    )
 )
