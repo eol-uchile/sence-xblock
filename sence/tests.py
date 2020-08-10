@@ -542,7 +542,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         data = response.content.decode().split("\r\n")
         self.assertEqual(
             data[0],
-            "RUN;Usuario;Correo Electrónico;Nombre;Inicio de Sesión (Timezone UTC)")
+            "RUN;Código de Curso;Usuario;Correo Electrónico;Nombre;Inicio de Sesión (Timezone UTC)")
         self.assertEqual(len(data) - 1, 1)  # Second line is empty ''
 
         # 3

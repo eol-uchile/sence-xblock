@@ -34,6 +34,15 @@ def export_attendance(request, block_id):
     if not staff_access:
         raise Http404()
     data = []
+    # Getting all students setups and generate a dict with the data
+    students_setups = EolSenceStudentSetup.objects.filter(
+        course=course_id
+    ).values(
+        'user_run',
+        'sence_course_code'
+    )
+    students_dict = { student['user_run'] : student['sence_course_code'] for student in students_setups }
+    # Getting all students status
     status = EolSenceStudentStatus.objects.filter(
         course=course_id
     ).order_by(
@@ -45,6 +54,7 @@ def export_attendance(request, block_id):
         'user__edxloginuser__run',
         'created_at',
     )
+    # Generate a CSV Response
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="SENCE_{}.csv"'.format(
         course_id)
@@ -54,12 +64,15 @@ def export_attendance(request, block_id):
         dialect='excel',
         encoding='utf-8')
     data = []
-    data.append(['RUN', 'Usuario', 'Correo Electrónico', 'Nombre',
+    # CSV Headers
+    data.append(['RUN', 'Código de Curso', 'Usuario', 'Correo Electrónico', 'Nombre',
                  'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
     for s in status:
-        logger.warning(type(s['user__profile__name']))
+        run_formatted = format_run(s['user__edxloginuser__run'])
+        # CSV Data
         data.append([
-            format_run(s['user__edxloginuser__run']),
+            run_formatted,
+            students_dict[run_formatted] if run_formatted in students_dict else 'undefined', # return sence_course_code
             s['user__username'],
             s['user__email'],
             s['user__profile__name'],
