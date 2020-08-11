@@ -31,13 +31,8 @@ function SenceXBlock(runtime, element, settings) {
                 $(element).find('.detail').html('<strong>Cuentas con una sesión activa en Sence.</strong>');
                 $(element).find('#form_sence #submit_form_sence').val('Cerrar Sesión en Sence');
                 $(element).find('.help').hide();
+                /* Show all components inside the unit */
                 $('.vert').not(`[data-id*="${settings.location}"]`).show();
-            } else {
-                /* If user is staff, show all components inside the unit */
-                if(settings.is_course_staff) {
-                    $('.vert').not(`[data-id*="${settings.location}"]`).show();
-                    $(element).find('.detail').append('</br><strong style="color: red;">Los componentes son visibles porque estas viendo esta unidad como Equipo</strong>');
-                }
             }
         }
 
@@ -45,8 +40,13 @@ function SenceXBlock(runtime, element, settings) {
         const load_login_data = (url) => {
             $(element).find('.sence-content').hide();
             $(element).find('.loading').show();
-            // by default hide all components except this xblock
-            $('.vert').not(`[data-id*="${settings.location}"]`).hide();
+            /* If user is staff, show all components inside the unit */
+            if(settings.is_course_staff) {
+                $(element).find('.detail').append('</br><strong style="color: red;">Los componentes son visibles porque estas viendo esta unidad como Equipo</strong>');
+            } else {
+                // by default hide all components except this xblock
+                $('.vert').not(`[data-id*="${settings.location}"]`).hide();
+            }
             fetch(url)
                 .then((response) => response.json())
                 .then((response) => {
