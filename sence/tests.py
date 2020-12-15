@@ -242,7 +242,8 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         """
             Test setting students codes
             1. Without students
-            1. With 2 students
+            2. With 2 students
+            3. With 1 students (should delete one student setup)
         """
         views.set_students_codes([], self.course.id)
         students_setup = EolSenceStudentSetup.objects.filter(
@@ -263,6 +264,17 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         students_setup = EolSenceStudentSetup.objects.filter(
             course=self.course.id)
         self.assertEqual(students_setup.count(), 2)
+
+        students = [
+            {
+                'user_run': '12345678-9',
+                'sence_course_code': 'sence_course_code'
+            },
+        ]
+        views.set_students_codes(students, self.course.id)
+        students_setup = EolSenceStudentSetup.objects.filter(
+            course=self.course.id)
+        self.assertEqual(students_setup.count(), 1)
 
     def test_get_course_setup(self):
         """

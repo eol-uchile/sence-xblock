@@ -306,9 +306,10 @@ def get_course_setup(course_id):
 
 def set_students_codes(students, course_id):
     """
-        Set student sence course
+        Set student sence course. Remove students setups if run is not in the list
         students is a list of dictionary [{'user_run' : '12345678-9', 'sence_course_code' : 'sence_course_code'}, ...]
     """
+    students_rut = []
     with transaction.atomic():
         for student in students:
             EolSenceStudentSetup.objects.update_or_create(
@@ -316,6 +317,14 @@ def set_students_codes(students, course_id):
                 course=course_id,
                 defaults={'sence_course_code': student['sence_course_code']}
             )
+            students_rut.append(student['user_run'])
+        # Remove students setups if run is not in the list
+        exclude_setups = EolSenceStudentSetup.objects.filter(
+            course=course_id
+        ).exclude(
+            user_run__in=students_rut
+        ).delete()
+
 
 
 def get_student_sence_course_code(user, course_id):
