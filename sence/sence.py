@@ -108,7 +108,7 @@ class SenceXBlock(XBlock):
 
     @XBlock.handler
     def save_students_codes(self, request, suffix=''):
-        from lms.djangoapps.courseware.access import has_access
+        from courseware.access import has_access
         from .views import set_students_codes
         usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
         course_id = usage_key.course_key

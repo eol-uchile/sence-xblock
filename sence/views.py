@@ -13,7 +13,7 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 from django.contrib.auth.models import User
 from uchileedxlogin.models import EdxLoginUser
 from opaque_keys.edx.keys import UsageKey, CourseKey
-from lms.djangoapps.courseware.access import has_access
+from courseware.access import has_access
 from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
 
 from datetime import datetime
