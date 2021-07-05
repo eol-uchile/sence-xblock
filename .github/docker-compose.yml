@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
 
   lms:
-    image: eoluchile/edx-platform:testing-lilac
+    image: eoluchile/edx-platform:testing-juniper
     volumes:
       - ../:/openedx/requirements/sence-xblock
     depends_on:
