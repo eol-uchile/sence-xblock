@@ -1,5 +1,7 @@
 # SENCE XBLOCK
 
+![Coverage Status](/coverage-badge.svg)
+
 ![https://github.com/eol-uchile/sence-xblock/actions](https://github.com/eol-uchile/sence-xblock/workflows/Python%20application/badge.svg)
 
 Show/hide unit components until students login to Sence
@@ -25,8 +27,13 @@ To enable this app have to setup the course at */admin/sence/eolsencecoursesetup
 ## TESTS
 **Prepare tests:**
 
-    > cd .github/
-    > docker-compose run --rm lms /openedx/requirements/sence-xblock/.github/test.sh
+- Install **act** following the instructions in [https://nektosact.com/installation/index.html](https://nektosact.com/installation/index.html)
+
+**Run tests:**
+- In a terminal at the root of the project
+    ```
+    act -W .github/workflows/pythonapp.yml
+    ```
 
 ## TO DO:
 - [ ] Attendance Report
