@@ -1,28 +1,29 @@
 # -*- coding: utf-8 -*-
+# Python Standard Libraries
 from __future__ import unicode_literals
+from datetime import datetime
+import logging
 
-from django.shortcuts import render
+# Installed packages (via pip)
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http404
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-
-from django.conf import settings
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-
-from django.contrib.auth.models import User
 from uchileedxlogin.models import EdxLoginUser
-from opaque_keys.edx.keys import UsageKey, CourseKey
-from courseware.access import has_access
-from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
-
-from datetime import datetime
-
 import unicodecsv as csv
 
-import logging
-logger = logging.getLogger(__name__)
+# Edx dependencies
+from courseware.access import has_access
+from opaque_keys.edx.keys import UsageKey
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
+# Internal project dependencies
+from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
+
+logger = logging.getLogger(__name__)
 
 def export_attendance(request, block_id):
     """

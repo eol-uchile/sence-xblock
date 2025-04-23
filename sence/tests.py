@@ -1,34 +1,33 @@
 # -*- coding: utf-8 -*-
-from mock import patch, Mock
-
+# Python Standard Libraries
+from datetime import datetime, timedelta
 import json
+import logging
 
-from django.test import TestCase, Client
+# Installed packages (via pip)
+from django.test import Client, override_settings
 from django.urls import reverse
-
+from mock import patch, Mock
+from uchileedxlogin.models import EdxLoginUser
 from util.testing import UrlResetMixin
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 
-from xmodule.modulestore.tests.factories import CourseFactory
-from student.tests.factories import UserFactory, CourseEnrollmentFactory
-from xblock.field_data import DictFieldData
-from student.roles import CourseStaffRole
+# Edx dependencies
 from opaque_keys.edx.keys import UsageKey
-
 from openedx.core.djangoapps.site_configuration.tests.test_util import (
     with_site_configuration,
-    with_site_configuration_context,
 )
+from student.roles import CourseStaffRole
+from student.tests.factories import UserFactory, CourseEnrollmentFactory
+from xblock.field_data import DictFieldData
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory
 
-from uchileedxlogin.models import EdxLoginUser
 
-from .sence import SenceXBlock, get_configurations, get_students_setups
+# Internal project dependencies
 from . import views
 from .models import EolSenceStudentStatus, EolSenceStudentSetup, EolSenceCourseSetup
+from .sence import SenceXBlock, get_configurations, get_students_setups
 
-from datetime import datetime, timedelta
-
-import logging
 logger = logging.getLogger(__name__)
 
 XBLOCK_RUNTIME_USER_ID = 99
