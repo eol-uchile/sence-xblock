@@ -168,6 +168,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             Test get all the students setup
             1. Without students
             2. With 2 students
+            3. wrong course_id
         """
         students_setup = views.get_all_students_setup(self.course.id)
         self.assertEqual(len(students_setup), 0)
@@ -185,12 +186,16 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         students_setup = views.get_all_students_setup(self.course.id)
         self.assertEqual(len(students_setup), 2)
 
+        students_setup_wrong_code = views.get_all_students_setup('mss/123456/sence_test')
+        self.assertEqual(len(students_setup_wrong_code), 0)
+
     def test_get_all_sence_course_codes(self):
         """
             Test get all the sence_course_codes in a course
             1. Without course_codes
             2. With 1
             3. With 1+
+            4. wrong course_id
         """
         sence_course_codes_1 = views.get_all_sence_course_codes(self.course.id)
         self.assertEqual(len(sence_course_codes_1), 0)
@@ -215,6 +220,9 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         )
         sence_course_codes_3 = views.get_all_sence_course_codes(self.course.id)
         self.assertEqual(len(sence_course_codes_3), 2)
+
+        sence_course_wrong_code = views.get_all_sence_course_codes('mss/123456/sence_tests')
+        self.assertEqual(len(sence_course_wrong_code), 0)
 
     def test_get_student_sence_course_code(self):
         """
@@ -309,6 +317,21 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(rut_otec, 'SENCE_RUT_OTEC')
         self.assertEqual(sence_token, 'SENCE_TOKEN')
         self.assertEqual(sence_api_url, 'SENCE_API_URL/')
+    
+    @override_settings(DEBUG=False, SENCE_RUT_OTEC='')
+    @override_settings(DEBUG=False, SENCE_TOKEN='')
+    @override_settings(DEBUG=False, SENCE_API_URL='')
+    def test_login_sence_empty_settings(self):
+        """
+            Test login_sence function without configurations
+        """
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        response = self.client.get(
+            reverse(
+                'login_sence', kwargs={
+                    'block_id': block_id}))
+        response_data = json.loads(response.content)
+        self.assertEqual(response_data['error'], 'platform_configuration')
 
     def test_set_student_status(self):
         """
@@ -778,6 +801,7 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
             1. With correct data
             2. With incorrect data (first student without code)
             3. With incorrect data (first student with incorrect run format)
+            4. With user withour permissions
         """
         request = TestRequest()
         request.method = 'POST'
@@ -811,3 +835,11 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
             request.params = post_data
             response = self.xblock.save_students_codes(request)
             self.assertEqual(response.status_code, 400)
+
+        request.user = self.student
+        get_current_request_response = request # only for request.user 
+        with patch('crum.get_current_request',
+                       return_value=get_current_request_response):
+            response = self.xblock.save_students_codes(request)
+            self.assertEqual(response.status_code, 401)
+    
