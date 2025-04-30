@@ -349,29 +349,20 @@ def get_all_sence_course_codes(course_id):
     """
         Get all Sence course codes associated
     """
-    try:
-        sence_course_codes = EolSenceStudentSetup.objects.filter(
-            course=course_id
-        ).values_list('sence_course_code', flat=True).distinct()
-        return list(sence_course_codes)
-    except EolSenceCourseSetup.DoesNotExist:
-        logger.warning('Course without sence_course_codes')
-        return []
-
+    sence_course_codes = EolSenceStudentSetup.objects.filter(
+        course=course_id
+    ).values_list('sence_course_code', flat=True).distinct()
+    return list(sence_course_codes)
 
 def get_all_students_setup(course_id):
     """
         Get all Students Setup
     """
-    try:
-        sence_course_codes = EolSenceStudentSetup.objects.filter(
-            course=course_id
-        ).values('user_run', 'sence_course_code')
-        return sence_course_codes
-    except EolSenceCourseSetup.DoesNotExist:
-        logger.warning('Course without sence_course_codes')
-        return EolSenceStudentSetup.objects.none()
 
+    sence_course_codes = EolSenceStudentSetup.objects.filter(
+        course=course_id
+    ).values('user_run', 'sence_course_code')
+    return sence_course_codes
 
 def get_session_status(user, course_id):
     """
