@@ -11,7 +11,7 @@ from django.conf import settings
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 from django.contrib.auth.models import User
-from uchileedxlogin.models import EdxLoginUser
+from django.apps import apps
 from opaque_keys.edx.keys import UsageKey, CourseKey
 from courseware.access import has_access
 from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
@@ -23,6 +23,17 @@ import unicodecsv as csv
 import logging
 logger = logging.getLogger(__name__)
 
+try:
+    if apps.is_installed('uchileedxlogin'):
+        from uchileedxlogin.models import EdxLoginUser as LoginUserModel
+        def _raw_run(obj):
+            return obj.run
+    elif apps.is_installed('eol_sso_login'):
+        from eol_sso_login.models import SSOLoginExtraData as LoginUserModel
+        def _raw_run(obj):
+            return obj.document
+except Exception as e:
+    raise ImportError(f"You must have either uchileedxlogin or eol_sso_login installed, {e}")
 
 def export_attendance(request, block_id):
     """
@@ -43,16 +54,11 @@ def export_attendance(request, block_id):
     )
     students_dict = { student['user_run'] : student['sence_course_code'] for student in students_setups }
     # Getting all students status
-    status = EolSenceStudentStatus.objects.filter(
-        course=course_id
-    ).order_by(
-        'user__username', 'created_at'
-    ).values(
-        'user__username',
-        'user__email',
-        'user__profile__name',
-        'user__edxloginuser__run',
-        'created_at',
+    status = (
+        EolSenceStudentStatus.objects
+            .filter(course=course_id)
+            .select_related('user', 'user__profile')
+            .order_by('user__username', 'created_at')
     )
     # Generate a CSV Response
     response = HttpResponse(content_type='text/csv')
@@ -63,22 +69,24 @@ def export_attendance(request, block_id):
         delimiter=';',
         dialect='excel',
         encoding='utf-8')
-    data = []
-    # CSV Headers
-    data.append(['RUN', 'Código de Curso', 'Usuario', 'Correo Electrónico', 'Nombre',
-                 'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
+    writer.writerow([
+        'RUN',
+        'Código de Curso',
+        'Usuario',
+        'Correo Electrónico',
+        'Nombre',
+        f'Inicio de Sesión (Timezone {settings.TIME_ZONE})'
+    ])
     for s in status:
-        run_formatted = format_run(s['user__edxloginuser__run'])
-        # CSV Data
-        data.append([
-            run_formatted,
-            students_dict[run_formatted] if run_formatted in students_dict else 'undefined', # return sence_course_code
-            s['user__username'],
-            s['user__email'],
-            s['user__profile__name'],
-            s['created_at'].strftime("%d-%m-%Y-%H:%M:%S")
+        run = get_user_run(s.user)
+        writer.writerow([
+            run,
+            students_dict.get(run, 'undefined'),
+            s.user.username,
+            s.user.email,
+            s.user.profile.name,
+            s.created_at.strftime("%d-%m-%Y-%H:%M:%S"),
         ])
-    writer.writerows(data)
     return response
 
 
@@ -400,9 +408,10 @@ def get_user_run(user):
         Get user RUN if exists
     """
     try:
-        edx_user = EdxLoginUser.objects.get(user=user)
-        return format_run(edx_user.run)
-    except EdxLoginUser.DoesNotExist:
+        login_obj = LoginUserModel.objects.get(user=user)
+        raw = _raw_run(login_obj)
+        return format_run(raw)
+    except LoginUserModel.DoesNotExist:
         logger.warning("{} doesn't have RUN".format(user.username))
         return ''
 
