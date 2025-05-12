@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def package_data(pkg, roots):
@@ -21,12 +21,12 @@ def package_data(pkg, roots):
 
 setup(
     name='sence-xblock',
-    version='0.1',
+    version='1.0.0',
     description='Show/hide unit components until students login to Sence',
     license='AGPL v3',
-    packages=[
-        'sence',
-    ],
+    author="Oficina EOL UChile",
+    author_email="eol-ing@uchile.cl",
+    packages=find_packages(),
     install_requires=[
         'XBlock',
     ],

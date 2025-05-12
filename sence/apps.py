@@ -18,7 +18,7 @@ class SenceConfig(AppConfig):
             ProjectType.CMS: {
                 PluginURLs.NAMESPACE: '',
                 PluginURLs.REGEX: r'^',
-                PluginURLs.RELATIVE_PATH: 'urls_cms',
+                PluginURLs.RELATIVE_PATH: u'urls',
             }
         },
         PluginSettings.CONFIG: {

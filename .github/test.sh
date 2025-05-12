@@ -1,16 +1,18 @@
-#!/bin/dash
+#!/bin/bash
 
-pip install -e git+https://github.com/eol-uchile/uchileedxlogin@3a59e9a4b898786549893ee0c651796ba97199dc#egg=uchileedxlogin
-pip install -e /openedx/requirements/sence-xblock
+set -e
 
-cd /openedx/requirements/sence-xblock/sence
-cp /openedx/edx-platform/setup.cfg .
+pip install --src /openedx/venv/src -e git+https://github.com/eol-uchile/uchileedxlogin@0.0.1#egg=uchileedxlogin
+pip install --src /openedx/venv/src -e /openedx/requirements/app
+pip install pytest-cov genbadge[coverage]
+
+cd /openedx/requirements/app
+
 mkdir test_root
-cd test_root/
-ln -s /openedx/staticfiles .
+ln -s /openedx/staticfiles ./test_root/
 
-cd /openedx/requirements/sence-xblock/sence
-
-DJANGO_SETTINGS_MODULE=lms.envs.test EDXAPP_TEST_MONGO_HOST=mongodb pytest tests.py
+DJANGO_SETTINGS_MODULE=lms.envs.test EDXAPP_TEST_MONGO_HOST=mongodb pytest sence/tests.py
 
 rm -rf test_root
+
+genbadge coverage
