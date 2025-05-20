@@ -8,7 +8,20 @@ import logging
 from django.test import Client, override_settings
 from django.urls import reverse
 from mock import patch, Mock
-from uchileedxlogin.models import EdxLoginUser
+from django.apps import apps
+logger = logging.getLogger(__name__)
+if apps.is_installed('uchileedxlogin'):
+    logger.info('uchileedxlogin activated')
+    from uchileedxlogin.models import EdxLoginUser as LoginUserModel
+    def _raw_run(obj):
+        return obj.run
+elif apps.is_installed('eol_sso_login'):
+    logger.info('eol_sso_login activated')
+    from eol_sso_login.models import SSOLoginExtraData as LoginUserModel
+    def _raw_run(obj):
+        return obj.document
+else:
+    raise ImportError(f"You must have either uchileedxlogin or eol_sso_login installed")
 from util.testing import UrlResetMixin
 
 # Edx dependencies
@@ -32,12 +45,30 @@ logger = logging.getLogger(__name__)
 
 XBLOCK_RUNTIME_USER_ID = 99
 
+LOGIN_FIELD = 'run' if any(f.name == 'run' for f in LoginUserModel._meta.get_fields()) else 'document'
+print("LoginUserModel._meta.get_fields()")
+print(LoginUserModel._meta.get_fields())
+logger.info("LoginUserModel._meta.get_fields()")
+logger.info(LoginUserModel._meta.get_fields())
+HAS_TYPE   = any(f.name == 'type' for f in LoginUserModel._meta.get_fields())
+DEFAULT_TYPE = 'rut'
+
 test_config = {
     'SENCE_RUT_OTEC': 'SENCE_RUT_OTEC',
     'SENCE_TOKEN': 'SENCE_TOKEN',
     'SENCE_API_URL': 'SENCE_API_URL/'
 }
 
+
+def make_login_kwargs(value, type_value=None):
+    """
+    Build the kwargs for creating a LoginUserModel record:
+    """
+    kwargs = { LOGIN_FIELD: value }
+    if HAS_TYPE:
+        kwargs['type'] = type_value or DEFAULT_TYPE
+    logger.info(kwargs)
+    return kwargs
 
 class TestRequest(object):
     # pylint: disable=too-few-public-methods
@@ -130,7 +161,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         user_run = views.get_user_run(self.user)
         self.assertEqual(user_run, '')
 
-        EdxLoginUser.objects.create(user=self.user, run='00001234567')
+        LoginUserModel.objects.create(user=self.user, **make_login_kwargs('00001234567'))
         user_run_2 = views.get_user_run(self.user)
         self.assertEqual(user_run_2, '123456-7')
 
@@ -498,7 +529,8 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                           'message': 'Student without sence course code'})
 
         # 4
-        EdxLoginUser.objects.create(user=self.user, run='000012345678')
+        # EdxLoginUser.objects.create(user=self.user, run='000012345678')
+        LoginUserModel.objects.create(user=self.user, **make_login_kwargs('000012345678'))
         EolSenceStudentSetup.objects.create(
             user_run='1234567-8',
             course=course_id,
@@ -580,7 +612,8 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(len(data) - 1, 1)  # Second line is empty ''
 
         # 3
-        EdxLoginUser.objects.create(user=self.user, run='00001234567')
+        # EdxLoginUser.objects.create(user=self.user, run='00001234567')
+        LoginUserModel.objects.create(user=self.user, **make_login_kwargs('00001234567'))
         EolSenceStudentStatus.objects.create(
             user=self.user,
             course=course_id,
@@ -602,7 +635,8 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             course=course_id,
             id_session='id_session'
         )
-        EdxLoginUser.objects.create(user=self.staff_user, run='0000321314321K')
+        # EdxLoginUser.objects.create(user=self.staff_user, run='0000321314321K')
+        LoginUserModel.objects.create(user=self.staff_user, **make_login_kwargs('0000321314321K'))
         EolSenceStudentStatus.objects.create(
             user=self.staff_user,
             course=course_id,
