@@ -3,9 +3,9 @@
 from __future__ import unicode_literals
 from datetime import datetime
 import logging
+logger = logging.getLogger(__name__)
 
 # Installed packages (via pip)
-from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -23,20 +23,7 @@ from openedx.core.djangoapps.site_configuration import helpers as configuration_
 
 # Internal project dependencies
 from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
-
-logger = logging.getLogger(__name__)
-if apps.is_installed('uchileedxlogin'):
-    logger.info('uchileedxlogin activated')
-    from uchileedxlogin.models import EdxLoginUser as LoginUserModel
-    def _raw_run(obj):
-        return obj.run
-elif apps.is_installed('eol_sso_login'):
-    logger.info('eol_sso_login activated')
-    from eol_sso_login.models import SSOLoginExtraData as LoginUserModel
-    def _raw_run(obj):
-        return obj.document
-else:
-    raise ImportError(f"You must have either uchileedxlogin or eol_sso_login installed")
+from .login_interface import get_user_run
 
 def export_attendance(request, block_id):
     """
@@ -398,22 +385,3 @@ def get_session_status(user, course_id):
         }
 
 
-def get_user_run(user):
-    """
-        Get user RUN if exists
-    """
-    try:
-        login_obj = LoginUserModel.objects.get(user=user)
-        raw = _raw_run(login_obj)
-        return format_run(raw)
-    except LoginUserModel.DoesNotExist:
-        logger.warning("{} doesn't have RUN".format(user.username))
-        return ''
-
-
-def format_run(run):
-    """
-        Format RUN to Sence requeriments (example: 12345689-0)
-    """
-    aux = run.lstrip('0')  # remove '0' from the left
-    return "{}-{}".format(aux[:-1], aux[-1:])  # add '-' before last digit
