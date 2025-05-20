@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 
 # Installed packages (via pip)
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -12,9 +13,6 @@ from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http40
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.apps import apps
-
-from datetime import datetime
 
 import unicodecsv as csv
 
@@ -38,7 +36,7 @@ elif apps.is_installed('eol_sso_login'):
     def _raw_run(obj):
         return obj.document
 else:
-    raise ImportError(f"You must have either uchileedxlogin or eol_sso_login installed, {e}")
+    raise ImportError(f"You must have either uchileedxlogin or eol_sso_login installed")
 
 def export_attendance(request, block_id):
     """
