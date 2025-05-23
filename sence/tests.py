@@ -8,7 +8,8 @@ import logging
 from django.test import Client, override_settings
 from django.urls import reverse
 from mock import patch, Mock
-from uchileedxlogin.models import EdxLoginUser
+logger = logging.getLogger(__name__)
+
 from util.testing import UrlResetMixin
 
 # Edx dependencies
@@ -22,13 +23,11 @@ from xblock.field_data import DictFieldData
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
-
 # Internal project dependencies
 from . import views
 from .models import EolSenceStudentStatus, EolSenceStudentSetup, EolSenceCourseSetup
 from .sence import SenceXBlock, get_configurations, get_students_setups
-
-logger = logging.getLogger(__name__)
+from .login_interface import create_sso_user, get_user_run, format_run
 
 XBLOCK_RUNTIME_USER_ID = 99
 
@@ -37,7 +36,6 @@ test_config = {
     'SENCE_TOKEN': 'SENCE_TOKEN',
     'SENCE_API_URL': 'SENCE_API_URL/'
 }
-
 
 class TestRequest(object):
     # pylint: disable=too-few-public-methods
@@ -105,19 +103,19 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             Run from uchileedxlogin are in the format: 00123456789
         """
         run = '01234567'
-        new_run = views.format_run(run)
+        new_run = format_run(run)
         self.assertEqual(new_run, '123456-7')
 
         run_2 = '00001234567'
-        new_run_2 = views.format_run(run_2)
+        new_run_2 = format_run(run_2)
         self.assertEqual(new_run_2, '123456-7')
 
         run_3 = '1234567'
-        new_run_3 = views.format_run(run_3)
+        new_run_3 = format_run(run_3)
         self.assertEqual(new_run_3, '123456-7')
 
         run_4 = '1234567K'
-        new_run_4 = views.format_run(run_4)
+        new_run_4 = format_run(run_4)
         self.assertEqual(new_run_4, '1234567-K')
 
     def test_get_user_run(self):
@@ -127,11 +125,11 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             1. With run
             2. Without run
         """
-        user_run = views.get_user_run(self.user)
+        user_run = get_user_run(self.user)
         self.assertEqual(user_run, '')
 
-        EdxLoginUser.objects.create(user=self.user, run='00001234567')
-        user_run_2 = views.get_user_run(self.user)
+        create_sso_user(self.user, '00001234567')
+        user_run_2 = get_user_run(self.user)
         self.assertEqual(user_run_2, '123456-7')
 
     def test_get_session_status(self):
@@ -498,7 +496,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                           'message': 'Student without sence course code'})
 
         # 4
-        EdxLoginUser.objects.create(user=self.user, run='000012345678')
+        create_sso_user(self.user, '000012345678')
         EolSenceStudentSetup.objects.create(
             user_run='1234567-8',
             course=course_id,
@@ -580,7 +578,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(len(data) - 1, 1)  # Second line is empty ''
 
         # 3
-        EdxLoginUser.objects.create(user=self.user, run='00001234567')
+        create_sso_user(self.user, '00001234567')
         EolSenceStudentStatus.objects.create(
             user=self.user,
             course=course_id,
@@ -602,7 +600,7 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             course=course_id,
             id_session='id_session'
         )
-        EdxLoginUser.objects.create(user=self.staff_user, run='0000321314321K')
+        create_sso_user(self.staff_user, '0000321314321K')
         EolSenceStudentStatus.objects.create(
             user=self.staff_user,
             course=course_id,
