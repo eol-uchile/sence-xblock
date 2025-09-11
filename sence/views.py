@@ -6,13 +6,11 @@ import logging
 
 # Installed packages (via pip)
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from uchileedxlogin.models import EdxLoginUser
 import unicodecsv as csv
 
 # Edx dependencies
@@ -21,7 +19,8 @@ from opaque_keys.edx.keys import UsageKey
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 # Internal project dependencies
-from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus
+from .api import get_user_rut
+from .models import EolSenceCourseSetup, EolSenceStudentSetup, EolSenceStudentStatus #TODO: handle through controller
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,6 @@ def export_attendance(request, block_id):
     staff_access = bool(has_access(request.user, 'staff', course_id))
     if not staff_access:
         raise Http404()
-    data = []
     # Getting all students setups and generate a dict with the data
     students_setups = EolSenceStudentSetup.objects.filter(
         course=course_id
@@ -46,15 +44,12 @@ def export_attendance(request, block_id):
     # Getting all students status
     status = EolSenceStudentStatus.objects.filter(
         course=course_id
-    ).order_by(
-        'user__username', 'created_at'
-    ).values(
-        'user__username',
-        'user__email',
-        'user__profile__name',
-        'user__edxloginuser__run',
-        'created_at',
-    )
+        ).select_related(
+            'user', 'user__profile'
+        ).order_by(
+            'user__username',
+            'created_at'
+        )
     # Generate a CSV Response
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="SENCE_{}.csv"'.format(
@@ -64,22 +59,24 @@ def export_attendance(request, block_id):
         delimiter=';',
         dialect='excel',
         encoding='utf-8')
-    data = []
-    # CSV Headers
-    data.append(['RUN', 'Código de Curso', 'Usuario', 'Correo Electrónico', 'Nombre',
-                 'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
+    writer.writerow([
+        'RUN',
+        'Código de Curso',
+        'Usuario',
+        'Correo Electrónico',
+        'Nombre',
+        f'Inicio de Sesión (Timezone {settings.TIME_ZONE})'
+    ])
     for s in status:
-        run_formatted = format_run(s['user__edxloginuser__run'])
-        # CSV Data
-        data.append([
-            run_formatted,
-            students_dict[run_formatted] if run_formatted in students_dict else 'undefined', # return sence_course_code
-            s['user__username'],
-            s['user__email'],
-            s['user__profile__name'],
-            s['created_at'].strftime("%d-%m-%Y-%H:%M:%S")
+        document_id = get_user_rut(s.user)
+        writer.writerow([
+            document_id,
+            students_dict.get(document_id, 'undefined'),
+            s.user.username,
+            s.user.email,
+            s.user.profile.name,
+            s.created_at.strftime("%d-%m-%Y-%H:%M:%S"),
         ])
-    writer.writerows(data)
     return response
 
 
@@ -120,8 +117,15 @@ def login_sence(request, block_id):
 
     # Get User Data
     user = request.user
-    user_run = get_user_run(user)
-    sence_course_code = get_student_sence_course_code(user_run, course_id)
+    user_rut = get_user_rut(user)
+    if not user_rut:
+        return JsonResponse(
+            status=400,
+            data={
+                'error': 'user_doesnt_have_rut',
+                'message': 'User doesn\'t have a Chilean RUT'})
+    
+    sence_course_code = get_student_sence_course_code(user_rut, course_id)
     if 'error' in sence_course_code:
         return JsonResponse(
             status=400,
@@ -151,7 +155,7 @@ def login_sence(request, block_id):
         'CodSence': sence_code,
         'CodigoCurso': sence_course_code,
         'LineaCapacitacion': sence_line,
-        'RunAlumno': user_run,
+        'RunAlumno': user_rut,
         'IdSesionAlumno': block_id,
         'UrlRetomaLogin': url_login_success,
         'UrlErrorLogin': url_login_fail,
@@ -387,21 +391,3 @@ def get_session_status(user, course_id):
         }
 
 
-def get_user_run(user):
-    """
-        Get user RUN if exists
-    """
-    try:
-        edx_user = EdxLoginUser.objects.get(user=user)
-        return format_run(edx_user.run)
-    except EdxLoginUser.DoesNotExist:
-        logger.warning("{} doesn't have RUN".format(user.username))
-        return ''
-
-
-def format_run(run):
-    """
-        Format RUN to Sence requeriments (example: 12345689-0)
-    """
-    aux = run.lstrip('0')  # remove '0' from the left
-    return "{}-{}".format(aux[:-1], aux[-1:])  # add '-' before last digit
