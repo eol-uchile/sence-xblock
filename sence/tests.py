@@ -22,6 +22,7 @@ from xmodule.modulestore.tests.factories import CourseFactory
 # Internal project dependencies
 from . import views
 from .api import get_user_rut
+from .integrations.login_interface import _format_document_id
 from .models import EolSenceStudentStatus, EolSenceStudentSetup, EolSenceCourseSetup
 from .sence import SenceXBlock, get_configurations, get_students_setups
 
@@ -899,3 +900,34 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
             response = self.xblock.save_students_codes(request)
             self.assertEqual(response.status_code, 401)
     
+
+class TestSenceIntegrations(UrlResetMixin, ModuleStoreTestCase):
+    
+    def test_format_document_id(self):
+        """
+            Test format document_id (123456-7)
+            document_id are in the format: 00123456789
+        """
+        document_id = '01234567'
+        new_document_id = _format_document_id(document_id, doc_type='rut')
+        self.assertEqual(new_document_id, '123456-7')
+
+        document_id_2 = '00001234567'
+        new_document_id_2 = _format_document_id(document_id_2, doc_type='rut')
+        self.assertEqual(new_document_id_2, '123456-7')
+
+        document_id_3 = '1234567'
+        new_document_id_3 = _format_document_id(document_id_3, doc_type='rut')
+        self.assertEqual(new_document_id_3, '123456-7')
+
+        document_id_4 = '1234567K'
+        new_document_id_4 = _format_document_id(document_id_4, doc_type='rut')
+        self.assertEqual(new_document_id_4, '1234567-K')
+
+        document_id_5 = '1234567K'
+        new_document_id_5 = _format_document_id(document_id_5, doc_type='dni')
+        self.assertEqual(new_document_id_5, '1234567K')
+
+        malformed_document_id = '123'
+        new_document_id_6 = _format_document_id(malformed_document_id, doc_type='rut')
+        self.assertEqual(new_document_id_6, '12-3') 
