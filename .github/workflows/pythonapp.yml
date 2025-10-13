@@ -4,6 +4,10 @@ on:
   push:
     paths-ignore:
       - '.github/workflows/**'
+    branches:
+      - 'koa'
+      - 'lilac'
+      - 'master'
   pull_request:
     types:
       - opened
@@ -18,4 +22,12 @@ on:
 
 jobs:
   build:
-    uses: eol-uchile/eol_feedback/.github/workflows/pythonapp.yml@master
+    uses: eol-uchile/workflow-commons/.github/workflows/pythonapp.yml@1.0.0
+    with:
+      app_id: ${{ vars.EOLITO_BOT_APP_ID }}
+      django-lms: true
+      django-cms: false
+      platform-eol: true
+      platform-openuchile: true
+    secrets:
+      private_key: ${{ secrets.EOLITO_BOT_PRIVATE_KEY }}
