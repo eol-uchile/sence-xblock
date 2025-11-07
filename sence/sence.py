@@ -12,7 +12,6 @@ from xblock.fields import Integer, Scope, Boolean, String
 from xblock.fragment import Fragment
 from xblock.exceptions import JsonHandlerError
 from opaque_keys.edx.keys import UsageKey
-from six import text_type
 from django.urls import reverse
 from openedx.core.djangoapps.theming.helpers import get_current_request
 
@@ -86,7 +85,7 @@ class SenceXBlock(XBlock):
 
     def studio_view(self, context=None):
         context_html = self.get_context()
-        usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
+        usage_key = UsageKey.from_string(str(self.scope_ids.usage_id))
         course_id = usage_key.course_key
         context_html['students_setup'] = get_students_setups(course_id)
         template = self.render_template(
@@ -108,9 +107,9 @@ class SenceXBlock(XBlock):
 
     @XBlock.handler
     def save_students_codes(self, request, suffix=''):
-        from courseware.access import has_access
+        from lms.djangoapps.courseware.access import has_access
         from .views import set_students_codes
-        usage_key = UsageKey.from_string(text_type(self.scope_ids.usage_id))
+        usage_key = UsageKey.from_string(str(self.scope_ids.usage_id))
         course_id = usage_key.course_key
         myrequest = get_current_request()
         staff_access = bool(has_access(myrequest.user, 'staff', course_id))

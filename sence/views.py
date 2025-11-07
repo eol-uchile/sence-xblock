@@ -17,7 +17,7 @@ from eol_sso.services.interface import get_indiv_id
 import unicodecsv as csv
 
 # Edx dependencies
-from courseware.access import has_access
+from lms.djangoapps.courseware.access import has_access
 from opaque_keys.edx.keys import UsageKey
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
