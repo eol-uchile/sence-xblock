@@ -8,20 +8,16 @@ import logging
 from django.test import Client, override_settings
 from django.urls import reverse
 from mock import patch, Mock
-from uchileedxlogin.models import EdxLoginUser
 from util.testing import UrlResetMixin
 
 # Edx dependencies
 from opaque_keys.edx.keys import UsageKey
-from openedx.core.djangoapps.site_configuration.tests.test_util import (
-    with_site_configuration,
-)
+from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration
 from student.roles import CourseStaffRole
 from student.tests.factories import UserFactory, CourseEnrollmentFactory
 from xblock.field_data import DictFieldData
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-
 
 # Internal project dependencies
 from . import views
@@ -99,40 +95,26 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                     username='staff_user',
                     password='test'))
 
-    def test_format_run(self):
+    def test_format_rut(self):
         """
-            Test format run to sence requirements (123456-7)
-            Run from uchileedxlogin are in the format: 00123456789
+            Test format rut (123456-7)
+            rut are in the format: 00123456789
         """
-        run = '01234567'
-        new_run = views.format_run(run)
-        self.assertEqual(new_run, '123456-7')
+        rut = '01234567'
+        new_rut = views.format_rut(rut)
+        self.assertEqual(new_rut, '123456-7')
 
-        run_2 = '00001234567'
-        new_run_2 = views.format_run(run_2)
-        self.assertEqual(new_run_2, '123456-7')
+        rut_2 = '00001234567'
+        new_rut_2 = views.format_rut(rut_2)
+        self.assertEqual(new_rut_2, '123456-7')
 
-        run_3 = '1234567'
-        new_run_3 = views.format_run(run_3)
-        self.assertEqual(new_run_3, '123456-7')
+        rut_3 = '1234567'
+        new_rut_3 = views.format_rut(rut_3)
+        self.assertEqual(new_rut_3, '123456-7')
 
-        run_4 = '1234567K'
-        new_run_4 = views.format_run(run_4)
-        self.assertEqual(new_run_4, '1234567-K')
-
-    def test_get_user_run(self):
-        """
-            Test get user run from uchileedxlogin.
-            get_user_run return a sence-formatted run
-            1. With run
-            2. Without run
-        """
-        user_run = views.get_user_run(self.user)
-        self.assertEqual(user_run, '')
-
-        EdxLoginUser.objects.create(user=self.user, run='00001234567')
-        user_run_2 = views.get_user_run(self.user)
-        self.assertEqual(user_run_2, '123456-7')
+        rut_4 = '1234567K'
+        new_rut_4 = views.format_rut(rut_4)
+        self.assertEqual(new_rut_4, '1234567-K')
 
     def test_get_session_status(self):
         """
@@ -453,16 +435,10 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(response.status_code, 302)  # Redirect
 
     @with_site_configuration(configuration=test_config)
-    def test_login_sence(self):
+    def test_login_sence_post(self):
         """
-            Test Login Sence (GET Request)
-            1. POST Request
-            2. GET Request without course setup
-            3. GET Request without sence course code
-            4. GET Request without active session
-            5. GET Request with active session
+            Test POST Request.
         """
-        # 1
         block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         response = self.client.post(
             reverse(
@@ -470,7 +446,12 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                     'block_id': block_id}))
         self.assertEqual(response.status_code, 400)
 
-        # 2
+    @with_site_configuration(configuration=test_config)
+    def test_login_sence_get_without_course_setup(self):
+        """
+            Test GET Request without course setup.
+        """
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         response = self.client.get(
             reverse(
                 'login_sence', kwargs={
@@ -479,8 +460,15 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(
             response.json(), {
                 "message": "Course without setup", "error": "course_setup"})
-
-        # 3
+    
+    @patch('sence.views.get_formatted_user_rut')
+    @with_site_configuration(configuration=test_config)
+    def test_login_sence_user_without_doc_id(self, mock_user_rut):
+        """
+            Test GET Request with a user lacking a valid document.
+        """
+        mock_user_rut.return_value = None
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         usage_key = UsageKey.from_string(block_id)
         course_id = usage_key.course_key
         EolSenceCourseSetup.objects.create(
@@ -494,11 +482,50 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                     'block_id': block_id}))
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(),
+                         {'error': 'user_doesnt_have_rut',
+                          'message': 'User doesn\'t have a Chilean RUT'})
+        
+    @patch('sence.views.get_formatted_user_rut')
+    @with_site_configuration(configuration=test_config)
+    def test_login_sence_user_without_sence_student_setup(self, mock_user_rut):
+        """
+            Test GET Request with valid user document but no SENCE student setup.
+        """
+        mock_user_rut.return_value = '1234567-8'
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(block_id)
+        course_id = usage_key.course_key
+        # Setup course.
+        EolSenceCourseSetup.objects.create(
+            course=course_id,
+            sence_code='sence_code',
+            sence_line=3
+        )
+        response = self.client.get(
+            reverse(
+                'login_sence', kwargs={
+                    'block_id': block_id}))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(),
                          {'error': 'sence_course_code',
                           'message': 'Student without sence course code'})
-
-        # 4
-        EdxLoginUser.objects.create(user=self.user, run='000012345678')
+        
+    @patch('sence.views.get_formatted_user_rut')
+    @with_site_configuration(configuration=test_config)
+    def test_login_sence_without_active_session(self, mock_user_rut):
+        """
+            Test GET Request with valid user and student setup but no active session.
+        """
+        mock_user_rut.return_value = '1234567-8'
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(block_id)
+        course_id = usage_key.course_key
+        # Setup course.
+        EolSenceCourseSetup.objects.create(
+            course=course_id,
+            sence_code='sence_code',
+            sence_line=3
+        )
         EolSenceStudentSetup.objects.create(
             user_run='1234567-8',
             course=course_id,
@@ -527,7 +554,27 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), correct_response)
 
-        # 5
+    @patch('sence.views.get_formatted_user_rut')
+    @with_site_configuration(configuration=test_config)
+    def test_login_sence_with_active_session(self, mock_user_rut):
+        """
+            Test GET Request with valid user and student setup but no active session.
+        """
+        mock_user_rut.return_value = '1234567-8'
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(block_id)
+        course_id = usage_key.course_key
+        # Setup course.
+        EolSenceCourseSetup.objects.create(
+            course=course_id,
+            sence_code='sence_code',
+            sence_line=3
+        )
+        EolSenceStudentSetup.objects.create(
+            user_run='1234567-8',
+            course=course_id,
+            sence_course_code='code_1'
+        )
         status = EolSenceStudentStatus.objects.create(
             user=self.user,
             course=course_id,
@@ -543,18 +590,11 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             response.json()['session_status']['id_session'],
             'id_session')
 
-    def test_export_attendance(self):
+    def test_export_attendance_with_non_staff_user(self):
         """
-            Test Export CSV with Students attendance
-            1. With not-staff user
-            2. With staff-user and empty records
-            3. With one student status
-            4. With more students status
+            Test Export CSV with Students attendance with non staff user.
         """
         block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
-        usage_key = UsageKey.from_string(block_id)
-        course_id = usage_key.course_key
-        # 1
         response = self.client.get(
             reverse(
                 'sence_export_attendance', kwargs={
@@ -562,9 +602,13 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                 }
             )
         )
-        self.assertEqual(response.status_code, 404)  # Not Staff
+        self.assertEqual(response.status_code, 404)
 
-        # 2
+    def test_export_attendance_with_staff_user(self):
+        """
+            Test Export CSV with Students attendance with staff user and empty records.
+        """
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
         response = self.staff_client.get(
             reverse(
                 'sence_export_attendance', kwargs={
@@ -572,15 +616,23 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
                 }
             )
         )
-        self.assertEqual(response.status_code, 200)  # Staff
+        self.assertEqual(response.status_code, 200)
         data = response.content.decode().split("\r\n")
         self.assertEqual(
             data[0],
             "RUN;Código de Curso;Usuario;Correo Electrónico;Nombre;Inicio de Sesión (Timezone UTC)")
-        self.assertEqual(len(data) - 1, 1)  # Second line is empty ''
+        # Second line is empty ''
+        self.assertEqual(len(data) - 1, 1)
 
-        # 3
-        EdxLoginUser.objects.create(user=self.user, run='00001234567')
+    @patch('sence.views.get_formatted_user_rut')
+    def test_export_attendance_with_one_student(self, mock_user_rut):
+        """
+            Test Export CSV with Students attendance with one student status.
+        """
+        mock_user_rut.return_value = '123456-7'
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(block_id)
+        course_id = usage_key.course_key
         EolSenceStudentStatus.objects.create(
             user=self.user,
             course=course_id,
@@ -596,13 +648,20 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
         data = response.content.decode().split("\r\n")
         self.assertEqual(len(data) - 1, 2)
 
-        # 4
+    @patch('sence.views.get_formatted_user_rut')
+    def test_export_attendance_with_multiple_students(self, mock_user_rut):
+        """
+            Test Export CSV with Students attendance with multiple student status.
+        """
+        mock_user_rut.side_effect = ['00001234567', '0000321314321K']
+        block_id = 'block-v1:eol+eol101+2020_1+type@sence+block@0f6943f9f6cc4f21b9cc878725c6d2cd'
+        usage_key = UsageKey.from_string(block_id)
+        course_id = usage_key.course_key
         EolSenceStudentStatus.objects.create(
             user=self.user,
             course=course_id,
             id_session='id_session'
         )
-        EdxLoginUser.objects.create(user=self.staff_user, run='0000321314321K')
         EolSenceStudentStatus.objects.create(
             user=self.staff_user,
             course=course_id,
@@ -616,8 +675,35 @@ class TestSenceAPI(UrlResetMixin, ModuleStoreTestCase):
             )
         )
         data = response.content.decode().split("\r\n")
-        self.assertEqual(len(data) - 1, 4)
+        self.assertEqual(len(data) - 1, 3)
 
+    @patch('sence.views.get_indiv_id')
+    def test_get_formatted_user_rut(self, mock_indiv_id):
+        """
+            Test get_formatted_user_rut for a valid rut
+        """
+        mock_indiv_id.return_value = '020337528K'
+        user_rut = views.get_formatted_user_rut(self.user)
+        self.assertEqual(user_rut, '20337528-K')
+
+    @patch('sence.views.get_indiv_id')
+    def test_get_formatted_user_rut_indiv_id_doesnt_exist(self, mock_indiv_id):
+        """
+            Test get_formatted_user_rut when the indiv_id doesn't exists
+        """
+        mock_indiv_id.return_value = None
+        user_rut = views.get_formatted_user_rut(self.user)
+        self.assertEqual(user_rut, None)
+
+    @patch('sence.views.get_indiv_id')
+    def test_get_formatted_user_rut_indiv_id_is_not_rut(self, mock_indiv_id):
+        """
+            Test get_formatted_user_rut when the indiv_id is not a rut
+        """
+        mock_indiv_id.return_value = 'P12345678'
+        user_rut = views.get_formatted_user_rut(self.user)
+        self.assertEqual(user_rut, None)
+ 
 
 class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
 
@@ -842,4 +928,31 @@ class TestSenceXBlock(UrlResetMixin, ModuleStoreTestCase):
                        return_value=get_current_request_response):
             response = self.xblock.save_students_codes(request)
             self.assertEqual(response.status_code, 401)
-    
+
+    def test_validate_rut_valid_rut(self):
+        """
+            Check validate_rut for a valid rut ending in a number
+        """
+        rut = "133341072"
+        self.assertTrue(views.validate_rut(rut))
+
+    def test_validate_rut_valid_rut_with_K(self):
+        """
+            Check validate_rut for a valid rut ending in K
+        """
+        rut = "22015551K"
+        self.assertTrue(views.validate_rut(rut))
+
+    def test_validate_rut_invalid_rut(self):
+        """
+            Check validate_rut for an invalid rut
+        """
+        rut = "220155513"
+        self.assertFalse(views.validate_rut(rut))
+
+    def test_validate_rut_not_rut(self):
+        """
+            Check validate_rut for a non rut indiv_id
+        """
+        indiv_id = "P1234567"
+        self.assertFalse(views.validate_rut(indiv_id))
