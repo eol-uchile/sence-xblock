@@ -21,7 +21,7 @@ def package_data(pkg, roots):
 
 setup(
     name='sence-xblock',
-    version='1.0.0',
+    version='2.0.0',
     description='Show/hide unit components until students login to Sence',
     license='AGPL v3',
     author="Oficina EOL UChile",

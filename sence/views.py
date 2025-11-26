@@ -2,17 +2,18 @@
 # Python Standard Libraries
 from __future__ import unicode_literals
 from datetime import datetime
+from itertools import cycle
 import logging
+import re
 
 # Installed packages (via pip)
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from uchileedxlogin.models import EdxLoginUser
+from eol_sso.services.interface import get_indiv_id
 import unicodecsv as csv
 
 # Edx dependencies
@@ -34,7 +35,6 @@ def export_attendance(request, block_id):
     staff_access = bool(has_access(request.user, 'staff', course_id))
     if not staff_access:
         raise Http404()
-    data = []
     # Getting all students setups and generate a dict with the data
     students_setups = EolSenceStudentSetup.objects.filter(
         course=course_id
@@ -46,15 +46,12 @@ def export_attendance(request, block_id):
     # Getting all students status
     status = EolSenceStudentStatus.objects.filter(
         course=course_id
-    ).order_by(
-        'user__username', 'created_at'
-    ).values(
-        'user__username',
-        'user__email',
-        'user__profile__name',
-        'user__edxloginuser__run',
-        'created_at',
-    )
+        ).select_related(
+            'user', 'user__profile'
+        ).order_by(
+            'user__username',
+            'created_at'
+        )
     # Generate a CSV Response
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="SENCE_{}.csv"'.format(
@@ -64,22 +61,24 @@ def export_attendance(request, block_id):
         delimiter=';',
         dialect='excel',
         encoding='utf-8')
-    data = []
-    # CSV Headers
-    data.append(['RUN', 'Código de Curso', 'Usuario', 'Correo Electrónico', 'Nombre',
-                 'Inicio de Sesión (Timezone {})'.format(settings.TIME_ZONE)])
+    writer.writerow([
+        'RUN',
+        'Código de Curso',
+        'Usuario',
+        'Correo Electrónico',
+        'Nombre',
+        f'Inicio de Sesión (Timezone {settings.TIME_ZONE})'
+    ])
     for s in status:
-        run_formatted = format_run(s['user__edxloginuser__run'])
-        # CSV Data
-        data.append([
-            run_formatted,
-            students_dict[run_formatted] if run_formatted in students_dict else 'undefined', # return sence_course_code
-            s['user__username'],
-            s['user__email'],
-            s['user__profile__name'],
-            s['created_at'].strftime("%d-%m-%Y-%H:%M:%S")
+        user_rut = get_formatted_user_rut(s.user)
+        writer.writerow([
+            user_rut,
+            students_dict.get(user_rut, 'undefined'),
+            s.user.username,
+            s.user.email,
+            s.user.profile.name,
+            s.created_at.strftime("%d-%m-%Y-%H:%M:%S"),
         ])
-    writer.writerows(data)
     return response
 
 
@@ -120,8 +119,15 @@ def login_sence(request, block_id):
 
     # Get User Data
     user = request.user
-    user_run = get_user_run(user)
-    sence_course_code = get_student_sence_course_code(user_run, course_id)
+    user_rut = get_formatted_user_rut(user)
+    if not user_rut:
+        logger.error(f'User: {user} is trying to log in into sence using a invalid rut')
+        return JsonResponse(
+            status=400,
+            data={
+                'error': 'user_doesnt_have_rut',
+                'message': 'User doesn\'t have a Chilean RUT'})
+    sence_course_code = get_student_sence_course_code(user_rut, course_id)
     if 'error' in sence_course_code:
         return JsonResponse(
             status=400,
@@ -151,7 +157,7 @@ def login_sence(request, block_id):
         'CodSence': sence_code,
         'CodigoCurso': sence_course_code,
         'LineaCapacitacion': sence_line,
-        'RunAlumno': user_run,
+        'RunAlumno': user_rut,
         'IdSesionAlumno': block_id,
         'UrlRetomaLogin': url_login_success,
         'UrlErrorLogin': url_login_fail,
@@ -358,7 +364,6 @@ def get_all_students_setup(course_id):
     """
         Get all Students Setup
     """
-
     sence_course_codes = EolSenceStudentSetup.objects.filter(
         course=course_id
     ).values('user_run', 'sence_course_code')
@@ -386,22 +391,45 @@ def get_session_status(user, course_id):
             'is_active': False
         }
 
+def get_formatted_user_rut(user):
+    """
+        Get sence formatted user rut, if it doesn't have one return None
+    """
+    indiv_id = get_indiv_id(user.id)
+    if not indiv_id:
+        return None
+    if not validate_rut(indiv_id):
+        return None
+    return format_rut(indiv_id)
 
-def get_user_run(user):
+def format_rut(rut):
     """
-        Get user RUN if exists
+        Format rut to follow Sence requeriments (example: 12345689-0)
     """
-    try:
-        edx_user = EdxLoginUser.objects.get(user=user)
-        return format_run(edx_user.run)
-    except EdxLoginUser.DoesNotExist:
-        logger.warning("{} doesn't have RUN".format(user.username))
-        return ''
+    # remove '0' from the left
+    stripped_rut = rut.lstrip('0')
+    # add '-' before last digit
+    return "{}-{}".format(stripped_rut[:-1], stripped_rut[-1:])
 
-
-def format_run(run):
+def validate_rut(indiv_id):
     """
-        Format RUN to Sence requeriments (example: 12345689-0)
+        Verify if indiv_id is a rut and has a valid format, returns True in that case.
     """
-    aux = run.lstrip('0')  # remove '0' from the left
-    return "{}-{}".format(aux[:-1], aux[-1:])  # add '-' before last digit
+    indiv_id = indiv_id.upper()
+    indiv_id = indiv_id.replace("-", "")
+    indiv_id = indiv_id.replace(".", "")
+    indiv_id = indiv_id.strip()
+    if not re.match(r'^[0-9]+[0-9K]$', indiv_id):
+        return False
+    aux = indiv_id[:-1]
+    dv = indiv_id[-1:]
+    revertido = list(map(int, reversed(str(aux))))
+    factors = cycle(list(range(2, 8)))
+    s = sum(d * f for d, f in zip(revertido, factors))
+    res = (-s) % 11
+    if str(res) == dv:
+        return True
+    elif dv == "K" and res == 10:
+        return True
+    else:
+        return False
